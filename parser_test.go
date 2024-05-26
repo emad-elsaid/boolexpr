@@ -24,7 +24,7 @@ func TestParse(t *testing.T) {
 				Expr: Compare{
 					Left: "x",
 					Right: &OpValue{
-						Op:    Op{Gt: strPtr(">")},
+						Op:    Op{Gt: true},
 						Value: Value{Int: intPtr(1)},
 					},
 				},
@@ -37,17 +37,17 @@ func TestParse(t *testing.T) {
 				Expr: Compare{
 					Left: "x",
 					Right: &OpValue{
-						Op:    Op{Gt: strPtr(">")},
+						Op:    Op{Gt: true},
 						Value: Value{Int: intPtr(1)},
 					},
 				},
 				OpExprs: []*OpExpr{
 					{
-						Op: BoolOp{And: strPtr("and")},
+						Op: BoolOp{And: true},
 						Expr: Compare{
 							Left: "y",
 							Right: &OpValue{
-								Op:    Op{Eq: strPtr("=")},
+								Op:    Op{Eq: true},
 								Value: Value{Int: intPtr(2)},
 							},
 						},
@@ -62,39 +62,39 @@ func TestParse(t *testing.T) {
 				Expr: Compare{
 					Left: "x",
 					Right: &OpValue{
-						Op:    Op{Gt: strPtr(">")},
+						Op:    Op{Gt: true},
 						Value: Value{Int: intPtr(1)},
 					},
 				},
 				OpExprs: []*OpExpr{
 					{
-						Op: BoolOp{And: strPtr("and")},
+						Op: BoolOp{And: true},
 						Expr: Compare{
 							Left: "y",
 							Right: &OpValue{
-								Op:    Op{Eq: strPtr("=")},
+								Op:    Op{Eq: true},
 								Value: Value{Int: intPtr(2)},
 							},
 						},
 					},
 					{
-						Op: BoolOp{Or: strPtr("or")},
+						Op: BoolOp{Or: true},
 						Expr: Group{
 							BoolExpr: &BoolExpr{
 								Expr: Compare{
 									Left: "x",
 									Right: &OpValue{
-										Op:    Op{Eq: strPtr("=")},
+										Op:    Op{Eq: true},
 										Value: Value{String: strPtr("hello")},
 									},
 								},
 								OpExprs: []*OpExpr{
 									{
-										Op: BoolOp{Or: strPtr("or")},
+										Op: BoolOp{Or: true},
 										Expr: Compare{
 											Left: "z",
 											Right: &OpValue{
-												Op: Op{Eq: strPtr("=")},
+												Op: Op{Eq: true},
 												Value: Value{
 													Bool: (*Boolean)(boolPtr(true)),
 												},

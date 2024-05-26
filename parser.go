@@ -22,8 +22,8 @@ type OpExpr struct {
 }
 
 type BoolOp struct {
-	And *string `@"and"`
-	Or  *string `| @"or"`
+	And bool `@"and"`
+	Or  bool `| @"or"`
 }
 
 type Boolean bool
@@ -46,10 +46,10 @@ type OpValue struct {
 }
 
 type Op struct {
-	Neq *string `@"!="`
-	Eq  *string `| @"="`
-	Gte *string `| @">="`
-	Gt  *string `| @">"`
-	Lte *string `| @"<="`
-	Lt  *string `| @"<"`
+	Neq bool `@"!="`
+	Eq  bool `| @"="`
+	Gte bool `| @">="`
+	Gt  bool `| @">"`
+	Lte bool `| @"<="`
+	Lt  bool `| @"<"`
 }
