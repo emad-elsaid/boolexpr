@@ -35,13 +35,9 @@ func (b *BoolExpr) Eval(syms Symbols) (res bool, err error) {
 var ErrSymbolNotFound error
 
 func (c Compare) Eval(syms Symbols) (res bool, err error) {
-	sym, ok := syms[c.Left]
-	if !ok {
-		return false, ErrSymbolNotFound
-	}
+	l, err := c.Left.Eval(syms)
 
-	val := sym()
-	return c.Right.Eval(syms, val)
+	return c.Right.Eval(syms, l)
 }
 
 var ErrLogicalOperationUndefinedState error
@@ -77,7 +73,7 @@ func (o *OpExpr) Eval(syms Symbols, left bool) (res bool, err error) {
 }
 
 func (o *OpValue) Eval(syms Symbols, left any) (res bool, err error) {
-	right, err := o.Value.Eval()
+	right, err := o.Value.Eval(syms)
 	if err != nil {
 		return false, err
 	}
@@ -87,7 +83,7 @@ func (o *OpValue) Eval(syms Symbols, left any) (res bool, err error) {
 
 var ErrValueDoesntHaveAnyVal error
 
-func (v *Value) Eval() (any, error) {
+func (v *Value) Eval(syms Symbols) (any, error) {
 	if v.Bool != nil {
 		return *v.Bool, nil
 	} else if v.Float != nil {
@@ -96,6 +92,13 @@ func (v *Value) Eval() (any, error) {
 		return *v.Int, nil
 	} else if v.String != nil {
 		return *v.String, nil
+	} else if v.Ident != nil {
+		sym, ok := syms[*v.Ident]
+		if !ok {
+			return false, ErrSymbolNotFound
+		}
+
+		return sym(), nil
 	} else {
 		return nil, ErrValueDoesntHaveAnyVal
 	}

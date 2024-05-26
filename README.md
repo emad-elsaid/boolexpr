@@ -46,14 +46,14 @@ The syntax supports:
 * And the logical operators: and, or
 * And the values types: int, float, string, bool
 * logical expressions can be grouped with `(...)`
-* The comparison must always be in the form `Symbol operator literal`
-  * Where `Symbol` is a variable name in the symbols map
+* The comparison must always be in the form `value operator value`
+  * value can be a symbol or a literal e.g `x`, `1`, `true`, `"hello"`
   * operator is one of the comparison operators
-  * literal is one of the values types e.g: 1, 3.14, "Hello", true/false
 
 # Expressions examples:
 
 * `x > 1`
+* `x > y and y > z`
 * `x = 10 and y != 20`
 * `x > 10 and y < 20 or z = true`
 * `x != 20 or y = 30 or z = "helloworld" or (a = false and b = true)`

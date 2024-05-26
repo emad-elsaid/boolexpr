@@ -118,6 +118,24 @@ func TestEval(t *testing.T) {
 				"z": func() any { return "NO" },
 			},
 		},
+		{
+			input:    `x > y and y > z`,
+			expected: true,
+			symbols: map[string]func() any{
+				"x": func() any { return 10 },
+				"y": func() any { return 5 },
+				"z": func() any { return 2 },
+			},
+		},
+		{
+			input:    `x > y and y > z`,
+			expected: false,
+			symbols: map[string]func() any{
+				"x": func() any { return 10 },
+				"y": func() any { return 5 },
+				"z": func() any { return 6 },
+			},
+		},
 	}
 
 	for _, tc := range tcs {

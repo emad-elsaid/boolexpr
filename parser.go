@@ -30,7 +30,7 @@ type Expr interface {
 }
 
 type Compare struct {
-	Left  string   `@Ident`
+	Left  *Value   `@@`
 	Right *OpValue `@@`
 }
 
@@ -60,6 +60,7 @@ type Value struct {
 	Int    *int     `| @Int`
 	String *string  `| @String`
 	Bool   *Boolean `| @("true" | "false")`
+	Ident  *string  `| @Ident`
 }
 
 type OpValue struct {
