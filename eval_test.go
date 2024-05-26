@@ -28,6 +28,34 @@ func TestEval(t *testing.T) {
 				"x": func() any { return 1 },
 			},
 		},
+		{
+			input:    `x = "Hello"`,
+			expected: true,
+			symbols: map[string]func() any{
+				"x": func() any { return "Hello" },
+			},
+		},
+		{
+			input:    `x = "Hello"`,
+			expected: false,
+			symbols: map[string]func() any{
+				"x": func() any { return "World" },
+			},
+		},
+		{
+			input:    `x = 2`,
+			expected: false,
+			symbols: map[string]func() any{
+				"x": func() any { return 2.4 },
+			},
+		},
+		{
+			input:    `x = 2`,
+			expected: true,
+			symbols: map[string]func() any{
+				"x": func() any { return 2.0 },
+			},
+		},
 	}
 
 	for _, tc := range tcs {

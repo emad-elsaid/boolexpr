@@ -113,9 +113,20 @@ func (o *Op) Eval(l, r any) (res bool, err error) {
 
 func (o *Op) EqEval(l, r any) (res bool, err error) {
 	switch lv := l.(type) {
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr, float32, float64:
+	case int:
 		switch rv := r.(type) {
-		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr, float32, float64:
+		case int:
+			return lv == rv, nil
+		case float64:
+			return float64(lv) == rv, nil
+		default:
+			return false, fmt.Errorf("Can't use = on %#v, %#v", lv, rv)
+		}
+	case float64:
+		switch rv := r.(type) {
+		case int:
+			return lv == float64(rv), nil
+		case float64:
 			return lv == rv, nil
 		default:
 			return false, fmt.Errorf("Can't use = on %#v, %#v", lv, rv)
@@ -141,10 +152,21 @@ func (o *Op) EqEval(l, r any) (res bool, err error) {
 
 func (o *Op) GtEval(l, r any) (res bool, err error) {
 	switch lv := l.(type) {
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr, float32, float64:
+	case int:
 		switch rv := r.(type) {
-		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr, float32, float64:
-			return lv.(float64) > rv.(float64), nil
+		case int:
+			return lv > rv, nil
+		case float64:
+			return float64(lv) > rv, nil
+		default:
+			return false, fmt.Errorf("Can't use > on %#v, %#v", lv, rv)
+		}
+	case float64:
+		switch rv := r.(type) {
+		case int:
+			return lv > float64(rv), nil
+		case float64:
+			return lv > rv, nil
 		default:
 			return false, fmt.Errorf("Can't use > on %#v, %#v", lv, rv)
 		}
@@ -161,10 +183,21 @@ func (o *Op) GtEval(l, r any) (res bool, err error) {
 }
 func (o *Op) GteEval(l, r any) (res bool, err error) {
 	switch lv := l.(type) {
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr, float32, float64:
+	case int:
 		switch rv := r.(type) {
-		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr, float32, float64:
-			return lv.(float64) >= rv.(float64), nil
+		case int:
+			return lv >= rv, nil
+		case float64:
+			return float64(lv) >= rv, nil
+		default:
+			return false, fmt.Errorf("Can't use >= on %#v, %#v", lv, rv)
+		}
+	case float64:
+		switch rv := r.(type) {
+		case int:
+			return lv >= float64(rv), nil
+		case float64:
+			return lv >= rv, nil
 		default:
 			return false, fmt.Errorf("Can't use >= on %#v, %#v", lv, rv)
 		}
@@ -181,10 +214,21 @@ func (o *Op) GteEval(l, r any) (res bool, err error) {
 }
 func (o *Op) LtEval(l, r any) (res bool, err error) {
 	switch lv := l.(type) {
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr, float32, float64:
+	case int:
 		switch rv := r.(type) {
-		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr, float32, float64:
-			return lv.(float64) < rv.(float64), nil
+		case int:
+			return lv < rv, nil
+		case float64:
+			return float64(lv) < rv, nil
+		default:
+			return false, fmt.Errorf("Can't use < on %#v, %#v", lv, rv)
+		}
+	case float64:
+		switch rv := r.(type) {
+		case int:
+			return lv < float64(rv), nil
+		case float64:
+			return lv < rv, nil
 		default:
 			return false, fmt.Errorf("Can't use < on %#v, %#v", lv, rv)
 		}
@@ -199,12 +243,24 @@ func (o *Op) LtEval(l, r any) (res bool, err error) {
 		return false, fmt.Errorf("Can't use < on type %#v", lv)
 	}
 }
+
 func (o *Op) LteEval(l, r any) (res bool, err error) {
 	switch lv := l.(type) {
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr, float32, float64:
+	case int:
 		switch rv := r.(type) {
-		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr, float32, float64:
-			return lv.(float64) <= rv.(float64), nil
+		case int:
+			return lv <= rv, nil
+		case float64:
+			return float64(lv) <= rv, nil
+		default:
+			return false, fmt.Errorf("Can't use <= on %#v, %#v", lv, rv)
+		}
+	case float64:
+		switch rv := r.(type) {
+		case int:
+			return lv <= float64(rv), nil
+		case float64:
+			return lv <= rv, nil
 		default:
 			return false, fmt.Errorf("Can't use <= on %#v, %#v", lv, rv)
 		}
@@ -221,9 +277,20 @@ func (o *Op) LteEval(l, r any) (res bool, err error) {
 }
 func (o *Op) NeqEval(l, r any) (res bool, err error) {
 	switch lv := l.(type) {
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr, float32, float64:
+	case int:
 		switch rv := r.(type) {
-		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr, float32, float64:
+		case int:
+			return lv != rv, nil
+		case float64:
+			return float64(lv) != rv, nil
+		default:
+			return false, fmt.Errorf("Can't use != on %#v, %#v", lv, rv)
+		}
+	case float64:
+		switch rv := r.(type) {
+		case int:
+			return lv != float64(rv), nil
+		case float64:
 			return lv != rv, nil
 		default:
 			return false, fmt.Errorf("Can't use != on %#v, %#v", lv, rv)
