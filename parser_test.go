@@ -57,7 +57,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			name:  "2 comparison with group",
-			input: `x > 1 and y = 2 or ( x = "hello" or z = true )`,
+			input: `x > 1 and y = 2 or ( x = "hello" or z = true ) and test = false`,
 			expected: &BoolExpr{
 				Expr: Compare{
 					Left: "x",
@@ -96,12 +96,22 @@ func TestParse(t *testing.T) {
 											Right: &OpValue{
 												Op: Op{Eq: true},
 												Value: Value{
-													Bool: (*Boolean)(boolPtr(true)),
+													Bool: boolPtr(true),
 												},
 											},
 										},
 									},
 								},
+							},
+						},
+					},
+					{
+						Op: BoolOp{And: true},
+						Expr: Compare{
+							Left: "test",
+							Right: &OpValue{
+								Op:    Op{Eq: true},
+								Value: Value{Bool: boolPtr(false)},
 							},
 						},
 					},
