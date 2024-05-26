@@ -3,7 +3,6 @@ package boolexpr
 import (
 	"testing"
 
-	"github.com/alecthomas/participle/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,6 +24,32 @@ func TestParse(t *testing.T) {
 					Left: "x",
 					Right: &OpValue{
 						Op:    Op{Gt: true},
+						Value: Value{Int: intPtr(1)},
+					},
+				},
+			},
+		},
+		{
+			name:  "simple comparison with !=",
+			input: "x != 1",
+			expected: &BoolExpr{
+				Expr: Compare{
+					Left: "x",
+					Right: &OpValue{
+						Op:    Op{Neq: true},
+						Value: Value{Int: intPtr(1)},
+					},
+				},
+			},
+		},
+		{
+			name:  "simple comparison with >=",
+			input: "x >= 1",
+			expected: &BoolExpr{
+				Expr: Compare{
+					Left: "x",
+					Right: &OpValue{
+						Op:    Op{Gte: true},
 						Value: Value{Int: intPtr(1)},
 					},
 				},
@@ -123,15 +148,8 @@ func TestParse(t *testing.T) {
 	for _, tc := range tcs {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			parser, err := participle.Build[BoolExpr](
-				participle.Unquote("String"),
-				participle.Union[Expr](Compare{}, Group{}),
-			)
+			output, err := Parse(tc.input)
 			assert.NoError(t, err)
-
-			output, err := parser.ParseString("", tc.input)
-			assert.NoError(t, err)
-
 			assert.Equal(t, tc.expected, output)
 		})
 	}

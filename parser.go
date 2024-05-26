@@ -1,5 +1,25 @@
 package boolexpr
 
+import "github.com/alecthomas/participle/v2"
+
+// Parse will convert string s to BoolExpr tree that can be evaluated multiple times
+func Parse(s string) (*BoolExpr, error) {
+	return parser.ParseString("", s)
+}
+
+var parser = must(participle.Build[BoolExpr](
+	participle.Unquote("String"),
+	participle.Union[Expr](Compare{}, Group{}),
+))
+
+func must[T any](p T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+
+	return p
+}
+
 type BoolExpr struct {
 	Expr    Expr      `@@`
 	OpExprs []*OpExpr `@@*`
@@ -48,10 +68,10 @@ type OpValue struct {
 }
 
 type Op struct {
-	Neq bool `@"!="`
-	Eq  bool `| @"="`
-	Gte bool `| @">="`
+	Neq bool `@"!" "="`
+	Gte bool `| @">" "="`
+	Lte bool `| @"<" "="`
 	Gt  bool `| @">"`
-	Lte bool `| @"<="`
 	Lt  bool `| @"<"`
+	Eq  bool `| @"="`
 }

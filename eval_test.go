@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/alecthomas/participle/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,23 +55,76 @@ func TestEval(t *testing.T) {
 				"x": func() any { return 2.0 },
 			},
 		},
+		{
+			input:    `x >= 10`,
+			expected: true,
+			symbols: map[string]func() any{
+				"x": func() any { return 11 },
+			},
+		},
+		{
+			input:    `x != 10`,
+			expected: true,
+			symbols: map[string]func() any{
+				"x": func() any { return 11 },
+			},
+		},
+		{
+			input:    `x <= 10`,
+			expected: false,
+			symbols: map[string]func() any{
+				"x": func() any { return 11 },
+			},
+		},
+		{
+			input:    `x >= 10 and y < 0`,
+			expected: true,
+			symbols: map[string]func() any{
+				"x": func() any { return 11 },
+				"y": func() any { return -1 },
+			},
+		},
+		{
+			input:    `x >= 10 and y < 0`,
+			expected: false,
+			symbols: map[string]func() any{
+				"x": func() any { return 11 },
+				"y": func() any { return 0 },
+			},
+		},
+		{
+			input:    `x >= 10 or y < 0`,
+			expected: true,
+			symbols: map[string]func() any{
+				"x": func() any { return 11 },
+				"y": func() any { return 0 },
+			},
+		},
+		{
+			input:    `x >= 10 or y < 0 or ( z = "hello" or z = "world" )`,
+			expected: true,
+			symbols: map[string]func() any{
+				"x": func() any { return 0 },
+				"y": func() any { return 0 },
+				"z": func() any { return "hello" },
+			},
+		},
+		{
+			input:    `x >= 10 or y < 0 or ( z = "hello" or z = "world" )`,
+			expected: false,
+			symbols: map[string]func() any{
+				"x": func() any { return 0 },
+				"y": func() any { return 0 },
+				"z": func() any { return "NO" },
+			},
+		},
 	}
 
 	for _, tc := range tcs {
 		tc := tc
 		t.Run(fmt.Sprintf("%s -> %t", tc.input, tc.expected), func(t *testing.T) {
-			parser, err := participle.Build[BoolExpr](
-				participle.Unquote("String"),
-				participle.Union[Expr](Compare{}, Group{}),
-			)
+			output, err := Eval(tc.input, tc.symbols)
 			assert.NoError(t, err)
-
-			ast, err := parser.ParseString("", tc.input)
-			assert.NoError(t, err)
-
-			output, err := ast.Eval(tc.symbols)
-			assert.NoError(t, err)
-
 			assert.Equal(t, tc.expected, output)
 		})
 	}
