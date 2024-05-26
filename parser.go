@@ -5,7 +5,9 @@ type BoolExpr struct {
 	OpExprs []*OpExpr `@@*`
 }
 
-type Expr interface{}
+type Expr interface {
+	Eval(Symbols) (bool, error)
+}
 
 type Compare struct {
 	Left  string   `@Ident`
