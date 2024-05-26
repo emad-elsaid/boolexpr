@@ -38,7 +38,7 @@ symbols = map[string]func() any{
 output, err = ast.Eval(symbols) // Output: false, nil
 ```
 
-# Sytax
+# Syntax
 
 The syntax supports:
 
@@ -57,6 +57,13 @@ The syntax supports:
 * `x = 10 and y != 20`
 * `x > 10 and y < 20 or z = true`
 * `x != 20 or y = 30 or z = "helloworld" or (a = false and b = true)`
+
+# Evaluation
+
+BoolExpr will short circuit in two situations:
+
+* If `and` is used and the left operand is `false`, the right operand will not be executed and it'll return `false`
+* If `or` is used and the left operand is `true`, the right opreand will not be executed and it'll return `true`
 
 # Examples
 
