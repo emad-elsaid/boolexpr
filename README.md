@@ -57,3 +57,7 @@ The syntax supports:
 * `x = 10 and y != 20`
 * `x > 10 and y < 20 or z = true`
 * `x != 20 or y = 30 or z = "helloworld" or (a = false and b = true)`
+
+# Examples
+
+* A basic example in Go playground: https://go.dev/play/p/gONexex0d7Q
