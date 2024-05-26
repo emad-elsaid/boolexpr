@@ -30,10 +30,10 @@ symbols := map[string]func() any{
 }
 output, err := ast.Eval(symbols) // Output: true, nil
 
-symbols := map[string]func() any{
+symbols = map[string]func() any{
     "x": func() any { return 0 },
     "y": func() any { return 30 },
     "z": func() any { return "hello" },
 }
-output, err := ast.Eval(symbols) // Output: false, nil
+output, err = ast.Eval(symbols) // Output: false, nil
 ```
