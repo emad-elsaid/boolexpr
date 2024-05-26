@@ -121,15 +121,18 @@ func TestParse(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		parser, err := participle.Build[BoolExpr](
-			participle.Unquote("String"),
-			participle.Union[Expr](Compare{}, Group{}),
-		)
-		assert.NoError(t, err)
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			parser, err := participle.Build[BoolExpr](
+				participle.Unquote("String"),
+				participle.Union[Expr](Compare{}, Group{}),
+			)
+			assert.NoError(t, err)
 
-		output, err := parser.ParseString("", tc.input)
-		assert.NoError(t, err)
+			output, err := parser.ParseString("", tc.input)
+			assert.NoError(t, err)
 
-		assert.Equal(t, tc.expected, output)
+			assert.Equal(t, tc.expected, output)
+		})
 	}
 }
