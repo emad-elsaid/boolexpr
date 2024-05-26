@@ -3,7 +3,7 @@ module github.com/emad-elsaid/boolexpr
 go 1.22.3
 
 require (
-	github.com/prataprc/goparsec v0.0.0-20211219142520-daac0e635e7e
+	github.com/alecthomas/participle/v2 v2.1.1
 	github.com/stretchr/testify v1.9.0
 )
 

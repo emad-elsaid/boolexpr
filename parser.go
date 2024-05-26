@@ -1,184 +1,55 @@
 package boolexpr
 
-import (
-	"strconv"
-	"strings"
+type BoolExpr struct {
+	Expr    Expr      `@@`
+	OpExprs []*OpExpr `@@*`
+}
 
-	parsec "github.com/prataprc/goparsec"
-)
+type Expr interface{}
 
-type (
-	Sym        string
-	Comparison struct {
-		Left  parsec.ParsecNode
-		Right parsec.ParsecNode
-		Op    parsec.ParsecNode
-	}
-	LogicalExpr []parsec.ParsecNode
-	Group       struct {
-		Children parsec.ParsecNode
-	}
-	And []parsec.ParsecNode
-	Or  []parsec.ParsecNode
-	Exp []parsec.ParsecNode
-)
+type Compare struct {
+	Left  string   `@Ident`
+	Right *OpValue `@@`
+}
 
-var (
-	literal = parsec.OrdChoice(
-		func(pn []parsec.ParsecNode) parsec.ParsecNode {
-			switch p := pn[0].(type) {
-			case *parsec.Terminal:
-				switch p.Name {
-				case "SYMBOL":
-					return Sym(p.Value)
-				case "INT":
-					v, err := strconv.ParseInt(p.Value, 10, 64)
-					if err != nil {
-						return p
-					}
-					return float64(v)
-				case "FLOAT":
-					v, err := strconv.ParseFloat(p.Value, 64)
-					if err != nil {
-						return p
-					}
-					return float64(v)
-				default:
-					return p
-				}
-			case string:
-				return strings.Trim(p, `"`)
-			default:
-				return p
-			}
-		},
-		parsec.Float(),
-		parsec.Int(),
-		parsec.String(),
-		parsec.Token(`[a-zA-Z\-_]+`, "SYMBOL"),
-	)
+type Group struct {
+	BoolExpr *BoolExpr `"(" @@ ")"`
+}
 
-	opers = parsec.OrdChoice(
-		func(pn []parsec.ParsecNode) parsec.ParsecNode {
-			return pn[0].(*parsec.Terminal).Value
-		},
-		parsec.Atom("=", "EQ"),
-		parsec.Atom(">=", "GTE"),
-		parsec.Atom("<=", "LTE"),
-		parsec.Atom(">", "GT"),
-		parsec.Atom("<", "LT"),
-		parsec.Atom("!=", "NEQ"),
-	)
+type OpExpr struct {
+	Op   BoolOp `@@`
+	Expr Expr   `@@`
+}
 
-	comparison = parsec.And(
-		func(pn []parsec.ParsecNode) parsec.ParsecNode {
-			return Comparison{
-				Left:  pn[0],
-				Op:    pn[1],
-				Right: pn[2],
-			}
-		},
-		literal,
-		opers,
-		literal,
-	)
+type BoolOp struct {
+	And *string `@"and"`
+	Or  *string `| @"or"`
+}
 
-	logicalOps = parsec.OrdChoice(
-		func(pn []parsec.ParsecNode) parsec.ParsecNode {
-			return pn[0].(*parsec.Terminal).Value
-		},
-		parsec.Atom("and", "AND"),
-		parsec.Atom("or", "OR"),
-	)
+type Boolean bool
 
-	logicalExprs = parsec.And(
-		func(pn []parsec.ParsecNode) parsec.ParsecNode {
-			children := LogicalExpr{pn[0]}
-			for _, n := range pn[1:] {
-				nc, ok := n.([]parsec.ParsecNode)
-				if ok {
-					children = append(children, nc...)
-				}
-			}
-			return children
-		},
-		comparison,
-		parsec.Maybe(
-			func(pn []parsec.ParsecNode) parsec.ParsecNode {
-				return pn[0]
-			},
-			parsec.Many(
-				func(pn []parsec.ParsecNode) parsec.ParsecNode {
-					children := []parsec.ParsecNode{}
-					for _, n := range pn {
-						nc, ok := n.([]parsec.ParsecNode)
-						if ok {
-							children = append(children, nc...)
-						}
-					}
-					return children
-				},
-				parsec.And(
-					nil,
-					logicalOps,
-					comparison,
-				),
-			),
-		),
-	)
+func (b *Boolean) Capture(values []string) error {
+	*b = values[0] == "true"
+	return nil
+}
 
-	group = parsec.And(
-		func(pn []parsec.ParsecNode) parsec.ParsecNode {
-			return Group{
-				Children: pn[1],
-			}
-		},
-		parsec.Atom("(", "OPENGRP"),
-		logicalExprs,
-		parsec.Atom(")", "CLOSEGRP"),
-	)
+type Value struct {
+	Float  *float64 `  @Float`
+	Int    *int     `| @Int`
+	String *string  `| @String`
+	Bool   *Boolean `| @("true" | "false")`
+}
 
-	exprOrGroup = parsec.OrdChoice(
-		func(pn []parsec.ParsecNode) parsec.ParsecNode {
-			return pn
-		},
-		group,
-		logicalExprs,
-	)
+type OpValue struct {
+	Op    Op    `@@`
+	Value Value `@@`
+}
 
-	Parser = parsec.And(
-		func(pn []parsec.ParsecNode) parsec.ParsecNode {
-			children := Exp{pn[0]}
-			for _, n := range pn[1:] {
-				nc, ok := n.([]parsec.ParsecNode)
-				if ok {
-					children = append(children, nc...)
-				}
-			}
-			return Exp(children)
-		},
-		exprOrGroup,
-		parsec.Maybe(
-			func(pn []parsec.ParsecNode) parsec.ParsecNode {
-				return pn[0]
-			},
-			parsec.Many(
-				func(pn []parsec.ParsecNode) parsec.ParsecNode {
-					children := []parsec.ParsecNode{}
-					for _, n := range pn {
-						nc, ok := n.([]parsec.ParsecNode)
-						if ok {
-							children = append(children, nc...)
-						}
-					}
-					return children
-				},
-				parsec.And(
-					nil,
-					logicalOps,
-					exprOrGroup,
-				),
-			),
-		),
-	)
-)
+type Op struct {
+	Neq *string `@"!="`
+	Eq  *string `| @"="`
+	Gte *string `| @">="`
+	Gt  *string `| @">"`
+	Lte *string `| @"<="`
+	Lt  *string `| @"<"`
+}
