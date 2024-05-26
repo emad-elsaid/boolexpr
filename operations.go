@@ -4,6 +4,7 @@ import (
 	"github.com/emad-elsaid/types"
 )
 
+// ListSymbols returns a list of symbols used in the expression
 func ListSymbols(exp *BoolExpr) []string {
 	var stack types.Slice[any]
 	stack = stack.Push(exp)
