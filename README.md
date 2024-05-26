@@ -37,3 +37,15 @@ symbols = map[string]func() any{
 }
 output, err = ast.Eval(symbols) // Output: false, nil
 ```
+
+# Sytax
+
+The syntax supports:
+
+* The following comparisons: =, !=, >, <, >=, <=
+* And the logical operators: and, or
+* And the values types: int, float, string, bool
+* The comparison must always be in the form `Symbol operator literal`
+  * Where `Symbol` is a variable name in the symbols map
+  * operator is one of the comparison operators
+  * literal is one of the values types e.g: 1, 3.14, "Hello", true/false
