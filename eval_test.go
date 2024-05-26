@@ -1,6 +1,7 @@
 package boolexpr
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/alecthomas/participle/v2"
@@ -9,32 +10,29 @@ import (
 
 func TestEval(t *testing.T) {
 	tcs := []struct {
-		name     string
 		input    string
-		symbols  map[string]func() any
 		expected bool
+		symbols  map[string]func() any
 	}{
 		{
-			name:  "x = 1 -> true",
-			input: "x = 1",
+			input:    "x = 1",
+			expected: true,
 			symbols: map[string]func() any{
 				"x": func() any { return 1 },
 			},
-			expected: true,
 		},
 		{
-			name:  "x = 2 -> false",
-			input: "x = 2",
+			input:    "x = 2",
+			expected: false,
 			symbols: map[string]func() any{
 				"x": func() any { return 1 },
 			},
-			expected: false,
 		},
 	}
 
 	for _, tc := range tcs {
 		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(fmt.Sprintf("%s -> %t", tc.input, tc.expected), func(t *testing.T) {
 			parser, err := participle.Build[BoolExpr](
 				participle.Unquote("String"),
 				participle.Union[Expr](Compare{}, Group{}),
