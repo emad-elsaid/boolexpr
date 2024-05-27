@@ -6,7 +6,7 @@ import (
 
 type Symbols map[string]func() any
 
-// Eval parses and evals the expression agains a map of symbols
+// Eval parses and evals the expression against a map of symbols
 func Eval(s string, syms Symbols) (bool, error) {
 	ast, err := Parse(s)
 	if err != nil {
