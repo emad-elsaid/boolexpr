@@ -1,5 +1,9 @@
 # BoolExpr
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/emad-elsaid/boolexpr.svg)](https://pkg.go.dev/github.com/emad-elsaid/boolexpr)
+[![Go Report Card](https://goreportcard.com/badge/github.com/emad-elsaid/boolexpr)](https://goreportcard.com/report/github.com/emad-elsaid/boolexpr)
+[![codecov](https://codecov.io/gh/emad-elsaid/boolexpr/graph/badge.svg?token=QBXTR1XRD6)](https://codecov.io/gh/emad-elsaid/boolexpr)
+
 A Go package to evaluate boolean expressions. against a map of variables. variables are lazy computed using a function that return the value.
 
 BoolExpr allows your program user to write a bool expression in the form: `x = 10 and y > 20 and z = "hello"` and then run it many times agains function `x,y,z` which returns `int, int, string` values. the evaluation returns a simple `bool`
