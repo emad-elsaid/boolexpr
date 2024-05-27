@@ -91,6 +91,11 @@ func TestEval(t *testing.T) {
 			},
 		},
 		{
+			input:    "10 = 1.0 or 1.0 = 10 or 1.0 = 10.0 or 10.0 = 1.0",
+			expected: false,
+			symbols:  map[string]func() any{},
+		},
+		{
 			input:    "x = true",
 			expected: true,
 			symbols: map[string]func() any{
