@@ -77,6 +77,27 @@ func TestEval(t *testing.T) {
 			},
 		},
 		{
+			input:    "x = 1.0",
+			expected: true,
+			symbols: map[string]func() any{
+				"x": func() any { return 1.0 },
+			},
+		},
+		{
+			input:    "x = 1.1",
+			expected: false,
+			symbols: map[string]func() any{
+				"x": func() any { return 1.0 },
+			},
+		},
+		{
+			input:    "x = true",
+			expected: true,
+			symbols: map[string]func() any{
+				"x": func() any { return true },
+			},
+		},
+		{
 			input:    `x >= 10 and y < 0`,
 			expected: true,
 			symbols: map[string]func() any{
@@ -146,4 +167,73 @@ func TestEval(t *testing.T) {
 			assert.Equal(t, tc.expected, output)
 		})
 	}
+}
+
+func TestEvalErrors(t *testing.T) {
+	tcs := []struct {
+		input    string
+		expected error
+		symbols  map[string]func() any
+	}{
+		{
+			input:    "> y",
+			expected: nil,
+			symbols: map[string]func() any{
+				"y": func() any { return 5 },
+			},
+		},
+		{
+			input:    "x > y",
+			expected: ErrSymbolNotFound,
+			symbols: map[string]func() any{
+				"x": func() any { return 5 },
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		tc := tc
+		t.Run(fmt.Sprintf("%s -> %s", tc.input, tc.expected), func(t *testing.T) {
+			_, err := Eval(tc.input, tc.symbols)
+			if tc.expected == nil {
+				assert.Error(t, err)
+			} else {
+				assert.ErrorIs(t, err, tc.expected)
+			}
+		})
+	}
+}
+
+func TestEvalShortCircuit(t *testing.T) {
+	t.Run("short circuit and", func(t *testing.T) {
+		input := `x = 0 and y = 0`
+		expected := false
+		symbols := map[string]func() any{
+			"x": func() any { return 1 },
+			"y": func() any {
+				t.Error("y is called while it shouldn't")
+				return 1
+			},
+		}
+
+		actual, err := Eval(input, symbols)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, actual)
+	})
+
+	t.Run("short circuit or", func(t *testing.T) {
+		input := `x = 0 or y = 0`
+		expected := true
+		symbols := map[string]func() any{
+			"x": func() any { return 0 },
+			"y": func() any {
+				t.Error("y is called while it shouldn't")
+				return 1
+			},
+		}
+
+		actual, err := Eval(input, symbols)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, actual)
+	})
 }

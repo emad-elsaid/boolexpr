@@ -85,7 +85,7 @@ var ErrValueDoesntHaveAnyVal error
 
 func (v *Value) Eval(syms Symbols) (any, error) {
 	if v.Bool != nil {
-		return *v.Bool, nil
+		return bool(*v.Bool), nil
 	} else if v.Float != nil {
 		return *v.Float, nil
 	} else if v.Int != nil {
