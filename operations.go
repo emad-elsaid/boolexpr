@@ -13,6 +13,7 @@ func ListSymbols(exp *BoolExpr) []string {
 	for len(stack) > 0 {
 		var item any
 		stack, item = stack.Pop()
+
 		switch i := item.(type) {
 		case *BoolExpr:
 			stack = stack.Push(i.Expr)
@@ -20,18 +21,16 @@ func ListSymbols(exp *BoolExpr) []string {
 				stack = stack.Push(e.Expr)
 			}
 		case Compare:
-			if i.Left.Ident != nil {
-				syms = syms.Push(*i.Left.Ident)
-			}
+			stack = stack.Push(i.Left)
 			stack = stack.Push(i.Right)
 		case *OpValue:
-			if i.Value.Ident != nil {
-				syms = syms.Push(*i.Value.Ident)
+			stack = stack.Push(i.Value)
+		case *Value:
+			if i.Ident != nil {
+				syms = syms.Push(*i.Ident)
 			}
 		case Group:
 			stack = stack.Push(i.BoolExpr)
-		case OpExpr:
-			stack = stack.Push(i.Expr)
 		}
 	}
 

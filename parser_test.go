@@ -24,7 +24,7 @@ func TestParse(t *testing.T) {
 					Left: &Value{Ident: strPtr("x")},
 					Right: &OpValue{
 						Op:    Op{Gt: true},
-						Value: Value{Int: intPtr(1)},
+						Value: &Value{Int: intPtr(1)},
 					},
 				},
 			},
@@ -37,7 +37,7 @@ func TestParse(t *testing.T) {
 					Left: &Value{Ident: strPtr("x")},
 					Right: &OpValue{
 						Op:    Op{Neq: true},
-						Value: Value{Int: intPtr(1)},
+						Value: &Value{Int: intPtr(1)},
 					},
 				},
 			},
@@ -50,7 +50,7 @@ func TestParse(t *testing.T) {
 					Left: &Value{Ident: strPtr("x")},
 					Right: &OpValue{
 						Op:    Op{Gte: true},
-						Value: Value{Int: intPtr(1)},
+						Value: &Value{Int: intPtr(1)},
 					},
 				},
 			},
@@ -63,7 +63,7 @@ func TestParse(t *testing.T) {
 					Left: &Value{Ident: strPtr("x")},
 					Right: &OpValue{
 						Op:    Op{Gt: true},
-						Value: Value{Ident: strPtr("y")},
+						Value: &Value{Ident: strPtr("y")},
 					},
 				},
 			},
@@ -76,7 +76,7 @@ func TestParse(t *testing.T) {
 					Left: &Value{Ident: strPtr("x")},
 					Right: &OpValue{
 						Op:    Op{Gt: true},
-						Value: Value{Int: intPtr(1)},
+						Value: &Value{Int: intPtr(1)},
 					},
 				},
 				OpExprs: []*OpExpr{
@@ -86,7 +86,7 @@ func TestParse(t *testing.T) {
 							Left: &Value{Ident: strPtr("y")},
 							Right: &OpValue{
 								Op:    Op{Eq: true},
-								Value: Value{Int: intPtr(2)},
+								Value: &Value{Int: intPtr(2)},
 							},
 						},
 					},
@@ -101,7 +101,7 @@ func TestParse(t *testing.T) {
 					Left: &Value{Ident: strPtr("x")},
 					Right: &OpValue{
 						Op:    Op{Gt: true},
-						Value: Value{Int: intPtr(1)},
+						Value: &Value{Int: intPtr(1)},
 					},
 				},
 				OpExprs: []*OpExpr{
@@ -111,7 +111,7 @@ func TestParse(t *testing.T) {
 							Left: &Value{Ident: strPtr("y")},
 							Right: &OpValue{
 								Op:    Op{Eq: true},
-								Value: Value{Int: intPtr(2)},
+								Value: &Value{Int: intPtr(2)},
 							},
 						},
 					},
@@ -123,7 +123,7 @@ func TestParse(t *testing.T) {
 									Left: &Value{Ident: strPtr("x")},
 									Right: &OpValue{
 										Op:    Op{Eq: true},
-										Value: Value{String: strPtr("hello")},
+										Value: &Value{String: strPtr("hello")},
 									},
 								},
 								OpExprs: []*OpExpr{
@@ -133,7 +133,7 @@ func TestParse(t *testing.T) {
 											Left: &Value{Ident: strPtr("z")},
 											Right: &OpValue{
 												Op: Op{Eq: true},
-												Value: Value{
+												Value: &Value{
 													Bool: boolPtr(true),
 												},
 											},
@@ -149,7 +149,7 @@ func TestParse(t *testing.T) {
 							Left: &Value{Ident: strPtr("test")},
 							Right: &OpValue{
 								Op:    Op{Eq: true},
-								Value: Value{Bool: boolPtr(false)},
+								Value: &Value{Bool: boolPtr(false)},
 							},
 						},
 					},

@@ -64,8 +64,8 @@ type Value struct {
 }
 
 type OpValue struct {
-	Op    Op    `@@`
-	Value Value `@@`
+	Op    Op     `@@`
+	Value *Value `@@`
 }
 
 type Op struct {
