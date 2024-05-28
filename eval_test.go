@@ -181,8 +181,7 @@ func TestEvalErrors(t *testing.T) {
 		symbols  map[string]func() any
 	}{
 		{
-			input:    "> y",
-			expected: nil,
+			input: "> y",
 			symbols: map[string]func() any{
 				"y": func() any { return 5 },
 			},
@@ -194,6 +193,29 @@ func TestEvalErrors(t *testing.T) {
 				"x": func() any { return 5 },
 			},
 		},
+
+		{input: `1 = "hello"`, expected: ErrorWrongDataType},
+		{input: `1 > "hello"`, expected: ErrorWrongDataType},
+		{input: `1 >= "hello"`, expected: ErrorWrongDataType},
+		{input: `1 < "hello"`, expected: ErrorWrongDataType},
+		{input: `1 <= "hello"`, expected: ErrorWrongDataType},
+		{input: `1 != "hello"`, expected: ErrorWrongDataType},
+
+		{input: `1.0 = "hello"`, expected: ErrorWrongDataType},
+		{input: `1.0 > "hello"`, expected: ErrorWrongDataType},
+		{input: `1.0 >= "hello"`, expected: ErrorWrongDataType},
+		{input: `1.0 < "hello"`, expected: ErrorWrongDataType},
+		{input: `1.0 <= "hello"`, expected: ErrorWrongDataType},
+		{input: `1.0 != "hello"`, expected: ErrorWrongDataType},
+
+		{input: `"hello" = 1`, expected: ErrorWrongDataType},
+		{input: `"hello" > 1`, expected: ErrorWrongDataType},
+		{input: `"hello" >= 1`, expected: ErrorWrongDataType},
+		{input: `"hello" < 1`, expected: ErrorWrongDataType},
+		{input: `"hello" <= 1`, expected: ErrorWrongDataType},
+		{input: `"hello" != 1`, expected: ErrorWrongDataType},
+
+		{input: `true = 1`, expected: ErrorWrongDataType},
 	}
 
 	for _, tc := range tcs {

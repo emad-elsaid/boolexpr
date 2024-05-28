@@ -124,6 +124,16 @@ func (o *Op) Eval(l, r any) (res bool, err error) {
 	}
 }
 
+var ErrorWrongDataType error
+
+func newErrorDataTypeMismatch(op string, l, r any) error {
+	return fmt.Errorf("Can't use %s on %v of type %T and %v of type %T", op, l, l, r, r)
+}
+
+func newErrorWrongDataType(op string, l any) error {
+	return fmt.Errorf("Can't use %s on %v of type %T", op, l, l)
+}
+
 func (o *Op) EqEval(l, r any) (res bool, err error) {
 	switch lv := l.(type) {
 	case int:
@@ -133,7 +143,7 @@ func (o *Op) EqEval(l, r any) (res bool, err error) {
 		case float64:
 			return float64(lv) == rv, nil
 		default:
-			return false, fmt.Errorf("Can't use = on %#v, %#v", lv, rv)
+			return false, newErrorDataTypeMismatch("=", lv, rv)
 		}
 	case float64:
 		switch rv := r.(type) {
@@ -142,24 +152,24 @@ func (o *Op) EqEval(l, r any) (res bool, err error) {
 		case float64:
 			return lv == rv, nil
 		default:
-			return false, fmt.Errorf("Can't use = on %#v, %#v", lv, rv)
+			return false, newErrorDataTypeMismatch("=", lv, rv)
 		}
 	case string:
 		switch rv := r.(type) {
 		case string:
 			return lv == rv, nil
 		default:
-			return false, fmt.Errorf("Can't use = on %#v, %#v", lv, rv)
+			return false, newErrorDataTypeMismatch("=", lv, rv)
 		}
 	case bool:
 		switch rv := r.(type) {
 		case bool:
 			return lv == rv, nil
 		default:
-			return false, fmt.Errorf("Can't use = on %#v, %#v", lv, rv)
+			return false, newErrorDataTypeMismatch("=", lv, rv)
 		}
 	default:
-		return false, fmt.Errorf("Can't use = on type %#v", lv)
+		return false, newErrorWrongDataType("=", lv)
 	}
 }
 
@@ -172,7 +182,7 @@ func (o *Op) GtEval(l, r any) (res bool, err error) {
 		case float64:
 			return float64(lv) > rv, nil
 		default:
-			return false, fmt.Errorf("Can't use > on %#v, %#v", lv, rv)
+			return false, newErrorDataTypeMismatch(">", lv, rv)
 		}
 	case float64:
 		switch rv := r.(type) {
@@ -181,17 +191,17 @@ func (o *Op) GtEval(l, r any) (res bool, err error) {
 		case float64:
 			return lv > rv, nil
 		default:
-			return false, fmt.Errorf("Can't use > on %#v, %#v", lv, rv)
+			return false, newErrorDataTypeMismatch(">", lv, rv)
 		}
 	case string:
 		switch rv := r.(type) {
 		case string:
 			return lv > rv, nil
 		default:
-			return false, fmt.Errorf("Can't use > on %#v, %#v", lv, rv)
+			return false, newErrorDataTypeMismatch(">", lv, rv)
 		}
 	default:
-		return false, fmt.Errorf("Can't use > on type %#v", lv)
+		return false, newErrorWrongDataType(">", lv)
 	}
 }
 func (o *Op) GteEval(l, r any) (res bool, err error) {
@@ -203,7 +213,7 @@ func (o *Op) GteEval(l, r any) (res bool, err error) {
 		case float64:
 			return float64(lv) >= rv, nil
 		default:
-			return false, fmt.Errorf("Can't use >= on %#v, %#v", lv, rv)
+			return false, newErrorDataTypeMismatch(">=", lv, rv)
 		}
 	case float64:
 		switch rv := r.(type) {
@@ -212,17 +222,17 @@ func (o *Op) GteEval(l, r any) (res bool, err error) {
 		case float64:
 			return lv >= rv, nil
 		default:
-			return false, fmt.Errorf("Can't use >= on %#v, %#v", lv, rv)
+			return false, newErrorDataTypeMismatch(">=", lv, rv)
 		}
 	case string:
 		switch rv := r.(type) {
 		case string:
 			return lv >= rv, nil
 		default:
-			return false, fmt.Errorf("Can't use >= on %#v, %#v", lv, rv)
+			return false, newErrorDataTypeMismatch(">=", lv, rv)
 		}
 	default:
-		return false, fmt.Errorf("Can't use >= on type %#v", lv)
+		return false, newErrorWrongDataType(">=", lv)
 	}
 }
 func (o *Op) LtEval(l, r any) (res bool, err error) {
@@ -234,7 +244,7 @@ func (o *Op) LtEval(l, r any) (res bool, err error) {
 		case float64:
 			return float64(lv) < rv, nil
 		default:
-			return false, fmt.Errorf("Can't use < on %#v, %#v", lv, rv)
+			return false, newErrorDataTypeMismatch("<", lv, rv)
 		}
 	case float64:
 		switch rv := r.(type) {
@@ -243,17 +253,17 @@ func (o *Op) LtEval(l, r any) (res bool, err error) {
 		case float64:
 			return lv < rv, nil
 		default:
-			return false, fmt.Errorf("Can't use < on %#v, %#v", lv, rv)
+			return false, newErrorDataTypeMismatch("<", lv, rv)
 		}
 	case string:
 		switch rv := r.(type) {
 		case string:
 			return lv < rv, nil
 		default:
-			return false, fmt.Errorf("Can't use < on %#v, %#v", lv, rv)
+			return false, newErrorDataTypeMismatch("<", lv, rv)
 		}
 	default:
-		return false, fmt.Errorf("Can't use < on type %#v", lv)
+		return false, newErrorWrongDataType("<", lv)
 	}
 }
 
@@ -266,7 +276,7 @@ func (o *Op) LteEval(l, r any) (res bool, err error) {
 		case float64:
 			return float64(lv) <= rv, nil
 		default:
-			return false, fmt.Errorf("Can't use <= on %#v, %#v", lv, rv)
+			return false, newErrorDataTypeMismatch("<=", lv, rv)
 		}
 	case float64:
 		switch rv := r.(type) {
@@ -275,17 +285,17 @@ func (o *Op) LteEval(l, r any) (res bool, err error) {
 		case float64:
 			return lv <= rv, nil
 		default:
-			return false, fmt.Errorf("Can't use <= on %#v, %#v", lv, rv)
+			return false, newErrorDataTypeMismatch("<=", lv, rv)
 		}
 	case string:
 		switch rv := r.(type) {
 		case string:
 			return lv <= rv, nil
 		default:
-			return false, fmt.Errorf("Can't use <= on %#v, %#v", lv, rv)
+			return false, newErrorDataTypeMismatch("<=", lv, rv)
 		}
 	default:
-		return false, fmt.Errorf("Can't use <= on type %#v", lv)
+		return false, newErrorWrongDataType("<=", lv)
 	}
 }
 func (o *Op) NeqEval(l, r any) (res bool, err error) {
@@ -297,7 +307,7 @@ func (o *Op) NeqEval(l, r any) (res bool, err error) {
 		case float64:
 			return float64(lv) != rv, nil
 		default:
-			return false, fmt.Errorf("Can't use != on %#v, %#v", lv, rv)
+			return false, newErrorDataTypeMismatch("!=", lv, rv)
 		}
 	case float64:
 		switch rv := r.(type) {
@@ -306,24 +316,24 @@ func (o *Op) NeqEval(l, r any) (res bool, err error) {
 		case float64:
 			return lv != rv, nil
 		default:
-			return false, fmt.Errorf("Can't use != on %#v, %#v", lv, rv)
+			return false, newErrorDataTypeMismatch("!=", lv, rv)
 		}
 	case string:
 		switch rv := r.(type) {
 		case string:
 			return lv != rv, nil
 		default:
-			return false, fmt.Errorf("Can't use != on %#v, %#v", lv, rv)
+			return false, newErrorDataTypeMismatch("!=", lv, rv)
 		}
 	case bool:
 		switch rv := r.(type) {
 		case bool:
 			return lv != rv, nil
 		default:
-			return false, fmt.Errorf("Can't use != on %#v, %#v", lv, rv)
+			return false, newErrorDataTypeMismatch("!=", lv, rv)
 		}
 	default:
-		return false, fmt.Errorf("Can't use != on type %#v", lv)
+		return false, newErrorWrongDataType("!=", lv)
 	}
 }
 
