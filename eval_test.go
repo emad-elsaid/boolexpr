@@ -162,6 +162,31 @@ func TestEval(t *testing.T) {
 				"z": func() any { return 6 },
 			},
 		},
+		{input: `1 > 0.9`, expected: true},
+		{input: `1.1 > 1`, expected: true},
+		{input: `1.1 > 1.0`, expected: true},
+		{input: `"AB" > "AA"`, expected: true},
+
+		{input: `1 >= 0.9`, expected: true},
+		{input: `1.1 >= 1`, expected: true},
+		{input: `1.1 >= 1.0`, expected: true},
+		{input: `"AB" >= "AA"`, expected: true},
+
+		{input: `0.9 < 1`, expected: true},
+		{input: `1 < 1.1`, expected: true},
+		{input: `1 < 1.1`, expected: true},
+		{input: `"AA" < "AB"`, expected: true},
+
+		{input: `0.9 <= 1`, expected: true},
+		{input: `1 <= 1.1`, expected: true},
+		{input: `1 <= 1.1`, expected: true},
+		{input: `"AA" <= "AB"`, expected: true},
+
+		{input: `0.9 != 1`, expected: true},
+		{input: `1 != 1.1`, expected: true},
+		{input: `1 != 1.1`, expected: true},
+		{input: `"AA" != "AB"`, expected: true},
+		{input: `true != false`, expected: true},
 	}
 
 	for _, tc := range tcs {
@@ -216,6 +241,7 @@ func TestEvalErrors(t *testing.T) {
 		{input: `"hello" != 1`, expected: ErrorWrongDataType},
 
 		{input: `true = 1`, expected: ErrorWrongDataType},
+		{input: `true != 1`, expected: ErrorWrongDataType},
 	}
 
 	for _, tc := range tcs {
