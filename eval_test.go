@@ -175,6 +175,7 @@ func TestEval(t *testing.T) {
 		{input: `0.9 < 1`, expected: true},
 		{input: `1 < 1.1`, expected: true},
 		{input: `1 < 1.1`, expected: true},
+		{input: `1.0 < 1.1`, expected: true},
 		{input: `"AA" < "AB"`, expected: true},
 
 		{input: `0.9 <= 1`, expected: true},
