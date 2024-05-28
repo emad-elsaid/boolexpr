@@ -21,8 +21,8 @@ func must[T any](p T, err error) T {
 }
 
 type BoolExpr struct {
-	Expr    Expr      `@@`
-	OpExprs []*OpExpr `@@*`
+	Expr    Expr     `@@`
+	OpExprs []OpExpr `@@*`
 }
 
 type Expr interface {
@@ -30,12 +30,12 @@ type Expr interface {
 }
 
 type Compare struct {
-	Left  *Value   `@@`
-	Right *OpValue `@@`
+	Left  Value   `@@`
+	Right OpValue `@@`
 }
 
 type Group struct {
-	BoolExpr *BoolExpr `"(" @@ ")"`
+	BoolExpr BoolExpr `"(" @@ ")"`
 }
 
 type OpExpr struct {
@@ -64,8 +64,8 @@ type Value struct {
 }
 
 type OpValue struct {
-	Op    Op     `@@`
-	Value *Value `@@`
+	Op    Op    `@@`
+	Value Value `@@`
 }
 
 type Op struct {

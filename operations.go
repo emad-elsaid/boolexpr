@@ -15,6 +15,11 @@ func ListSymbols(exp *BoolExpr) []string {
 		stack, item = stack.Pop()
 
 		switch i := item.(type) {
+		case BoolExpr:
+			stack = stack.Push(i.Expr)
+			for _, e := range i.OpExprs {
+				stack = stack.Push(e.Expr)
+			}
 		case *BoolExpr:
 			stack = stack.Push(i.Expr)
 			for _, e := range i.OpExprs {
@@ -23,9 +28,9 @@ func ListSymbols(exp *BoolExpr) []string {
 		case Compare:
 			stack = stack.Push(i.Left)
 			stack = stack.Push(i.Right)
-		case *OpValue:
+		case OpValue:
 			stack = stack.Push(i.Value)
-		case *Value:
+		case Value:
 			if i.Ident != nil {
 				syms = syms.Push(*i.Ident)
 			}
