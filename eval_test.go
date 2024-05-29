@@ -215,6 +215,13 @@ func TestEvalErrors(t *testing.T) {
 			},
 		},
 		{
+			input:    "x != true or y < 0",
+			expected: ErrSymbolNotFound,
+			symbols: map[string]func() any{
+				"x": func() any { return true },
+			},
+		},
+		{
 			input:    "x = x and ( x > y )",
 			expected: ErrSymbolNotFound,
 			symbols: map[string]func() any{

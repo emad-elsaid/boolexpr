@@ -1,6 +1,7 @@
 package boolexpr
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -32,15 +33,18 @@ func (b *BoolExpr) Eval(syms Symbols) (res bool, err error) {
 	return
 }
 
-var ErrSymbolNotFound error
+var ErrSymbolNotFound = errors.New("Symbol not found")
 
 func (c Compare) Eval(syms Symbols) (res bool, err error) {
 	l, err := c.Left.Eval(syms)
+	if err != nil {
+		return false, err
+	}
 
 	return c.Right.Eval(syms, l)
 }
 
-var ErrLogicalOperationUndefinedState error
+var ErrLogicalOperationUndefinedState = errors.New("Logical operation not specified")
 
 func (o *OpExpr) Eval(syms Symbols, left bool) (res bool, err error) {
 	if o.Op.And {
@@ -81,7 +85,7 @@ func (o *OpValue) Eval(syms Symbols, left any) (res bool, err error) {
 	return o.Op.Eval(left, right)
 }
 
-var ErrValueDoesntHaveAnyVal error
+var ErrValueDoesntHaveAnyVal = errors.New("Value is not specified")
 
 func (v *Value) Eval(syms Symbols) (any, error) {
 	if v.Bool != nil {
@@ -104,7 +108,7 @@ func (v *Value) Eval(syms Symbols) (any, error) {
 	}
 }
 
-var ErrOpDoesnotHaveVal error
+var ErrOpDoesnotHaveVal = errors.New("Operation not specified")
 
 func (o *Op) Eval(l, r any) (res bool, err error) {
 	if o.Eq {
@@ -124,14 +128,18 @@ func (o *Op) Eval(l, r any) (res bool, err error) {
 	}
 }
 
-var ErrorWrongDataType error
+var ErrorWrongDataType = errors.New("Wrong data type")
 
 func newErrorDataTypeMismatch(op string, l, r any) error {
-	return fmt.Errorf("Can't use %s on %v of type %T and %v of type %T", op, l, l, r, r)
+	return fmt.Errorf("%w, Can't use %s on %v of type %T and %v of type %T",
+		ErrorWrongDataType,
+		op, l, l, r, r)
 }
 
 func newErrorWrongDataType(op string, l any) error {
-	return fmt.Errorf("Can't use %s on %v of type %T", op, l, l)
+	return fmt.Errorf("%w, Can't use %s on %v of type %T",
+		ErrorWrongDataType,
+		op, l, l)
 }
 
 func (o *Op) EqEval(l, r any) (res bool, err error) {
