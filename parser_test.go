@@ -6,6 +6,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestParserErr(t *testing.T) {
+	assert.NoError(t, parserErr)
+}
+
 func TestParse(t *testing.T) {
 	strPtr := func(s string) *string { return &s }
 	intPtr := func(i int) *int { return &i }

@@ -7,18 +7,10 @@ func Parse(s string) (*BoolExpr, error) {
 	return parser.ParseString("", s)
 }
 
-var parser = must(participle.Build[BoolExpr](
+var parser, parserErr = participle.Build[BoolExpr](
 	participle.Unquote("String"),
 	participle.Union[Expr](Compare{}, Group{}),
-))
-
-func must[T any](p T, err error) T {
-	if err != nil {
-		panic(err)
-	}
-
-	return p
-}
+)
 
 type BoolExpr struct {
 	Expr    Expr     `@@`
