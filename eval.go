@@ -41,7 +41,12 @@ func (c Compare) Eval(syms Symbols) (res bool, err error) {
 		return false, err
 	}
 
-	return c.Right.Eval(syms, l)
+	r, err := c.Right.Eval(syms)
+	if err != nil {
+		return false, err
+	}
+
+	return c.Op.Eval(l, r)
 }
 
 var ErrLogicalOperationUndefinedState = errors.New("Logical operation not specified")
@@ -74,15 +79,6 @@ func (o *OpExpr) Eval(syms Symbols, left bool) (res bool, err error) {
 	} else {
 		return false, ErrLogicalOperationUndefinedState
 	}
-}
-
-func (o *OpValue) Eval(syms Symbols, left any) (res bool, err error) {
-	right, err := o.Value.Eval(syms)
-	if err != nil {
-		return false, err
-	}
-
-	return o.Op.Eval(left, right)
 }
 
 var ErrValueDoesntHaveAnyVal = errors.New("Value is not specified")

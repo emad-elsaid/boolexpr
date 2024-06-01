@@ -28,8 +28,6 @@ func ListSymbols(exp *BoolExpr) []string {
 		case Compare:
 			stack = stack.Push(i.Left)
 			stack = stack.Push(i.Right)
-		case OpValue:
-			stack = stack.Push(i.Value)
 		case Value:
 			if i.Ident != nil {
 				syms = syms.Push(*i.Ident)

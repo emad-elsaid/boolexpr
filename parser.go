@@ -22,8 +22,9 @@ type Expr interface {
 }
 
 type Compare struct {
-	Left  Value   `@@`
-	Right OpValue `@@`
+	Left  Value `@@`
+	Op    Op    `@@`
+	Right Value `@@`
 }
 
 type Group struct {
@@ -53,11 +54,6 @@ type Value struct {
 	String *string  `| @String`
 	Bool   *Boolean `| @("true" | "false")`
 	Ident  *string  `| @Ident`
-}
-
-type OpValue struct {
-	Op    Op    `@@`
-	Value Value `@@`
 }
 
 type Op struct {

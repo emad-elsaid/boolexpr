@@ -25,11 +25,9 @@ func TestParse(t *testing.T) {
 			input: "x > 1",
 			expected: &BoolExpr{
 				Expr: Compare{
-					Left: Value{Ident: strPtr("x")},
-					Right: OpValue{
-						Op:    Op{Gt: true},
-						Value: Value{Int: intPtr(1)},
-					},
+					Left:  Value{Ident: strPtr("x")},
+					Op:    Op{Gt: true},
+					Right: Value{Int: intPtr(1)},
 				},
 			},
 		},
@@ -38,11 +36,9 @@ func TestParse(t *testing.T) {
 			input: "x != 1",
 			expected: &BoolExpr{
 				Expr: Compare{
-					Left: Value{Ident: strPtr("x")},
-					Right: OpValue{
-						Op:    Op{Neq: true},
-						Value: Value{Int: intPtr(1)},
-					},
+					Left:  Value{Ident: strPtr("x")},
+					Op:    Op{Neq: true},
+					Right: Value{Int: intPtr(1)},
 				},
 			},
 		},
@@ -51,11 +47,9 @@ func TestParse(t *testing.T) {
 			input: "x >= 1",
 			expected: &BoolExpr{
 				Expr: Compare{
-					Left: Value{Ident: strPtr("x")},
-					Right: OpValue{
-						Op:    Op{Gte: true},
-						Value: Value{Int: intPtr(1)},
-					},
+					Left:  Value{Ident: strPtr("x")},
+					Op:    Op{Gte: true},
+					Right: Value{Int: intPtr(1)},
 				},
 			},
 		},
@@ -64,11 +58,9 @@ func TestParse(t *testing.T) {
 			input: "x > y",
 			expected: &BoolExpr{
 				Expr: Compare{
-					Left: Value{Ident: strPtr("x")},
-					Right: OpValue{
-						Op:    Op{Gt: true},
-						Value: Value{Ident: strPtr("y")},
-					},
+					Left:  Value{Ident: strPtr("x")},
+					Op:    Op{Gt: true},
+					Right: Value{Ident: strPtr("y")},
 				},
 			},
 		},
@@ -77,21 +69,17 @@ func TestParse(t *testing.T) {
 			input: "x > 1 and y = 2",
 			expected: &BoolExpr{
 				Expr: Compare{
-					Left: Value{Ident: strPtr("x")},
-					Right: OpValue{
-						Op:    Op{Gt: true},
-						Value: Value{Int: intPtr(1)},
-					},
+					Left:  Value{Ident: strPtr("x")},
+					Op:    Op{Gt: true},
+					Right: Value{Int: intPtr(1)},
 				},
 				OpExprs: []OpExpr{
 					{
 						Op: BoolOp{And: true},
 						Expr: Compare{
-							Left: Value{Ident: strPtr("y")},
-							Right: OpValue{
-								Op:    Op{Eq: true},
-								Value: Value{Int: intPtr(2)},
-							},
+							Left:  Value{Ident: strPtr("y")},
+							Op:    Op{Eq: true},
+							Right: Value{Int: intPtr(2)},
 						},
 					},
 				},
@@ -102,21 +90,17 @@ func TestParse(t *testing.T) {
 			input: `x > 1 and y = 2 or ( x = "hello" or z = true ) and test = false`,
 			expected: &BoolExpr{
 				Expr: Compare{
-					Left: Value{Ident: strPtr("x")},
-					Right: OpValue{
-						Op:    Op{Gt: true},
-						Value: Value{Int: intPtr(1)},
-					},
+					Left:  Value{Ident: strPtr("x")},
+					Op:    Op{Gt: true},
+					Right: Value{Int: intPtr(1)},
 				},
 				OpExprs: []OpExpr{
 					{
 						Op: BoolOp{And: true},
 						Expr: Compare{
-							Left: Value{Ident: strPtr("y")},
-							Right: OpValue{
-								Op:    Op{Eq: true},
-								Value: Value{Int: intPtr(2)},
-							},
+							Left:  Value{Ident: strPtr("y")},
+							Op:    Op{Eq: true},
+							Right: Value{Int: intPtr(2)},
 						},
 					},
 					{
@@ -124,21 +108,17 @@ func TestParse(t *testing.T) {
 						Expr: Group{
 							BoolExpr: BoolExpr{
 								Expr: Compare{
-									Left: Value{Ident: strPtr("x")},
-									Right: OpValue{
-										Op:    Op{Eq: true},
-										Value: Value{String: strPtr("hello")},
-									},
+									Left:  Value{Ident: strPtr("x")},
+									Op:    Op{Eq: true},
+									Right: Value{String: strPtr("hello")},
 								},
 								OpExprs: []OpExpr{
 									{
 										Op: BoolOp{Or: true},
 										Expr: Compare{
-											Left: Value{Ident: strPtr("z")},
-											Right: OpValue{
-												Op:    Op{Eq: true},
-												Value: Value{Bool: boolPtr(true)},
-											},
+											Left:  Value{Ident: strPtr("z")},
+											Op:    Op{Eq: true},
+											Right: Value{Bool: boolPtr(true)},
 										},
 									},
 								},
@@ -148,11 +128,9 @@ func TestParse(t *testing.T) {
 					{
 						Op: BoolOp{And: true},
 						Expr: Compare{
-							Left: Value{Ident: strPtr("test")},
-							Right: OpValue{
-								Op:    Op{Eq: true},
-								Value: Value{Bool: boolPtr(false)},
-							},
+							Left:  Value{Ident: strPtr("test")},
+							Op:    Op{Eq: true},
+							Right: Value{Bool: boolPtr(false)},
 						},
 					},
 				},
