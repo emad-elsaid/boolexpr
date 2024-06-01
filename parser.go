@@ -22,9 +22,9 @@ type Expr interface {
 }
 
 type Compare struct {
-	Left  Value `@@`
-	Op    Op    `@@`
-	Right Value `@@`
+	Left  Value        `@@`
+	Op    ComparisonOp `@@`
+	Right Value        `@@`
 }
 
 type Group struct {
@@ -32,11 +32,11 @@ type Group struct {
 }
 
 type OpExpr struct {
-	Op   BoolOp `@@`
-	Expr Expr   `@@`
+	Op   LogicalOp `@@`
+	Expr Expr      `@@`
 }
 
-type BoolOp struct {
+type LogicalOp struct {
 	And bool `@"and"`
 	Or  bool `| @"or"`
 }
@@ -56,7 +56,7 @@ type Value struct {
 	Ident  *string  `| @Ident`
 }
 
-type Op struct {
+type ComparisonOp struct {
 	Neq bool `@"!" "="`
 	Gte bool `| @">" "="`
 	Lte bool `| @"<" "="`

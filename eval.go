@@ -106,7 +106,7 @@ func (v *Value) Eval(syms Symbols) (any, error) {
 
 var ErrOpDoesnotHaveVal = errors.New("Operation not specified")
 
-func (o *Op) Eval(l, r any) (res bool, err error) {
+func (o *ComparisonOp) Eval(l, r any) (res bool, err error) {
 	if o.Eq {
 		return o.EqEval(l, r)
 	} else if o.Gt {
@@ -138,7 +138,7 @@ func newErrorWrongDataType(op string, l any) error {
 		op, l, l)
 }
 
-func (o *Op) EqEval(l, r any) (res bool, err error) {
+func (o *ComparisonOp) EqEval(l, r any) (res bool, err error) {
 	switch lv := l.(type) {
 	case int:
 		switch rv := r.(type) {
@@ -177,7 +177,7 @@ func (o *Op) EqEval(l, r any) (res bool, err error) {
 	}
 }
 
-func (o *Op) GtEval(l, r any) (res bool, err error) {
+func (o *ComparisonOp) GtEval(l, r any) (res bool, err error) {
 	switch lv := l.(type) {
 	case int:
 		switch rv := r.(type) {
@@ -208,7 +208,7 @@ func (o *Op) GtEval(l, r any) (res bool, err error) {
 		return false, newErrorWrongDataType(">", lv)
 	}
 }
-func (o *Op) GteEval(l, r any) (res bool, err error) {
+func (o *ComparisonOp) GteEval(l, r any) (res bool, err error) {
 	switch lv := l.(type) {
 	case int:
 		switch rv := r.(type) {
@@ -239,7 +239,7 @@ func (o *Op) GteEval(l, r any) (res bool, err error) {
 		return false, newErrorWrongDataType(">=", lv)
 	}
 }
-func (o *Op) LtEval(l, r any) (res bool, err error) {
+func (o *ComparisonOp) LtEval(l, r any) (res bool, err error) {
 	switch lv := l.(type) {
 	case int:
 		switch rv := r.(type) {
@@ -271,7 +271,7 @@ func (o *Op) LtEval(l, r any) (res bool, err error) {
 	}
 }
 
-func (o *Op) LteEval(l, r any) (res bool, err error) {
+func (o *ComparisonOp) LteEval(l, r any) (res bool, err error) {
 	switch lv := l.(type) {
 	case int:
 		switch rv := r.(type) {
@@ -302,7 +302,7 @@ func (o *Op) LteEval(l, r any) (res bool, err error) {
 		return false, newErrorWrongDataType("<=", lv)
 	}
 }
-func (o *Op) NeqEval(l, r any) (res bool, err error) {
+func (o *ComparisonOp) NeqEval(l, r any) (res bool, err error) {
 	switch lv := l.(type) {
 	case int:
 		switch rv := r.(type) {
