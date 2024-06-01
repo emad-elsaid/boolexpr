@@ -105,7 +105,7 @@ func TestParse(t *testing.T) {
 					},
 					{
 						Op: LogicalOp{Or: true},
-						Expr: Group{
+						Expr: SubExpr{
 							BoolExpr: BoolExpr{
 								Expr: Compare{
 									Left:  Value{Ident: strPtr("x")},

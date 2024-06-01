@@ -32,7 +32,7 @@ func ListSymbols(exp *BoolExpr) []string {
 			if i.Ident != nil {
 				syms = syms.Push(*i.Ident)
 			}
-		case Group:
+		case SubExpr:
 			stack = stack.Push(i.BoolExpr)
 		}
 	}

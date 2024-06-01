@@ -341,6 +341,6 @@ func (o *ComparisonOp) NeqEval(l, r any) (res bool, err error) {
 	}
 }
 
-func (g Group) Eval(syms Symbols) (res bool, err error) {
+func (g SubExpr) Eval(syms Symbols) (res bool, err error) {
 	return g.BoolExpr.Eval(syms)
 }
