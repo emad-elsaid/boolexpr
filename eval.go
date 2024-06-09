@@ -5,6 +5,27 @@ import (
 	"fmt"
 )
 
+var (
+	ErrSymbolNotFound                 = errors.New("Symbol not found")
+	ErrLogicalOperationUndefinedState = errors.New("Logical operation not specified")
+	ErrValueDoesntHaveAnyVal          = errors.New("Value is not specified")
+	ErrSymbolTypeUnknown              = errors.New("Symbol type not supported")
+	ErrOpDoesnotHaveVal               = errors.New("Operation not specified")
+	ErrorWrongDataType                = errors.New("Wrong data type")
+)
+
+func newErrorDataTypeMismatch(op string, l, r any) error {
+	return fmt.Errorf("%w, Can't use %s on %v of type %T and %v of type %T",
+		ErrorWrongDataType,
+		op, l, l, r, r)
+}
+
+func newErrorWrongDataType(op string, l any) error {
+	return fmt.Errorf("%w, Can't use %s on %v of type %T",
+		ErrorWrongDataType,
+		op, l, l)
+}
+
 type Symbols map[string]any
 
 // Eval parses and evals the expression against a map of symbols
@@ -14,17 +35,17 @@ func Eval(s string, syms Symbols) (bool, error) {
 		return false, err
 	}
 
-	return ast.Eval(syms)
+	return EvalBoolExpr(ast, syms)
 }
 
-func (b *BoolExpr) Eval(syms Symbols) (res bool, err error) {
-	res, err = b.Expr.Eval(syms)
-	if err != nil {
+// EvalBoolExpr evaluate a parsed expression against a map of symbols
+func EvalBoolExpr(b *BoolExpr, syms Symbols) (res bool, err error) {
+	if res, err = evalExpr(b.Expr, syms); err != nil {
 		return
 	}
 
 	for _, e := range b.OpExprs {
-		res, err = e.Eval(syms, res)
+		res, err = evalOpExpr(e, syms, res)
 		if err != nil {
 			return
 		}
@@ -33,32 +54,39 @@ func (b *BoolExpr) Eval(syms Symbols) (res bool, err error) {
 	return
 }
 
-var ErrSymbolNotFound = errors.New("Symbol not found")
+func evalExpr(b Expr, syms Symbols) (res bool, err error) {
+	switch e := b.(type) {
+	case Compare:
+		l, err := evalValue(e.Left, syms)
+		if err != nil {
+			return false, err
+		}
 
-func (c Compare) Eval(syms Symbols) (res bool, err error) {
-	l, err := c.Left.Eval(syms)
-	if err != nil {
-		return false, err
+		r, err := evalValue(e.Right, syms)
+		if err != nil {
+			return false, err
+		}
+
+		return evalComparisonOp(e.Op, l, r)
+	case SubExpr:
+		if res, err = EvalBoolExpr(&e.BoolExpr, syms); err != nil {
+			return
+		}
+	default:
+		return false, fmt.Errorf("Expr type is unhandled %T", b)
 	}
 
-	r, err := c.Right.Eval(syms)
-	if err != nil {
-		return false, err
-	}
-
-	return c.Op.Eval(l, r)
+	return
 }
 
-var ErrLogicalOperationUndefinedState = errors.New("Logical operation not specified")
-
-func (o *OpExpr) Eval(syms Symbols, left bool) (res bool, err error) {
+func evalOpExpr(o OpExpr, syms Symbols, left bool) (res bool, err error) {
 	if o.Op.And {
 		// short circuit if left already false
 		if !left {
 			return false, nil
 		}
 
-		right, err := o.Expr.Eval(syms)
+		right, err := evalExpr(o.Expr, syms)
 		if err != nil {
 			return false, err
 		}
@@ -70,7 +98,7 @@ func (o *OpExpr) Eval(syms Symbols, left bool) (res bool, err error) {
 			return true, nil
 		}
 
-		right, err := o.Expr.Eval(syms)
+		right, err := evalExpr(o.Expr, syms)
 		if err != nil {
 			return false, err
 		}
@@ -81,10 +109,7 @@ func (o *OpExpr) Eval(syms Symbols, left bool) (res bool, err error) {
 	}
 }
 
-var ErrValueDoesntHaveAnyVal = errors.New("Value is not specified")
-var ErrSymbolTypeUnknown = errors.New("Symbol type not supported")
-
-func (v *Value) Eval(syms Symbols) (any, error) {
+func evalValue(v Value, syms Symbols) (any, error) {
 	if v.Bool != nil {
 		return bool(*v.Bool), nil
 	} else if v.Float != nil {
@@ -93,10 +118,10 @@ func (v *Value) Eval(syms Symbols) (any, error) {
 		return *v.Int, nil
 	} else if v.String != nil {
 		return *v.String, nil
-	} else if v.Ident != nil {
-		sym, ok := syms[*v.Ident]
+	} else if v.Symbol != nil {
+		sym, ok := syms[*v.Symbol]
 		if !ok {
-			return false, fmt.Errorf("%w, Symbol: %s", ErrSymbolNotFound, *v.Ident)
+			return false, fmt.Errorf("%w, Symbol: %s", ErrSymbolNotFound, *v.Symbol)
 		}
 
 		switch i := sym.(type) {
@@ -129,48 +154,32 @@ func (v *Value) Eval(syms Symbols) (any, error) {
 		case func() (any, error):
 			return i()
 		default:
-			return false, fmt.Errorf("%w, Symbol: %s of type %T", ErrSymbolTypeUnknown, *v.Ident, i)
+			return false, fmt.Errorf("%w, Symbol: %s of type %T", ErrSymbolTypeUnknown, *v.Symbol, i)
 		}
 	} else {
 		return nil, ErrValueDoesntHaveAnyVal
 	}
 }
 
-var ErrOpDoesnotHaveVal = errors.New("Operation not specified")
-
-func (o *ComparisonOp) Eval(l, r any) (res bool, err error) {
+func evalComparisonOp(o ComparisonOp, l, r any) (res bool, err error) {
 	if o.Eq {
-		return o.EqEval(l, r)
+		return eqEval(l, r)
 	} else if o.Gt {
-		return o.GtEval(l, r)
+		return gtEval(l, r)
 	} else if o.Gte {
-		return o.GteEval(l, r)
+		return gteEval(l, r)
 	} else if o.Lt {
-		return o.LtEval(l, r)
+		return ltEval(l, r)
 	} else if o.Lte {
-		return o.LteEval(l, r)
+		return lteEval(l, r)
 	} else if o.Neq {
-		return o.NeqEval(l, r)
+		return neqEval(l, r)
 	} else {
 		return false, ErrOpDoesnotHaveVal
 	}
 }
 
-var ErrorWrongDataType = errors.New("Wrong data type")
-
-func newErrorDataTypeMismatch(op string, l, r any) error {
-	return fmt.Errorf("%w, Can't use %s on %v of type %T and %v of type %T",
-		ErrorWrongDataType,
-		op, l, l, r, r)
-}
-
-func newErrorWrongDataType(op string, l any) error {
-	return fmt.Errorf("%w, Can't use %s on %v of type %T",
-		ErrorWrongDataType,
-		op, l, l)
-}
-
-func (o *ComparisonOp) EqEval(l, r any) (res bool, err error) {
+func eqEval(l, r any) (res bool, err error) {
 	switch lv := l.(type) {
 	case int:
 		switch rv := r.(type) {
@@ -209,7 +218,7 @@ func (o *ComparisonOp) EqEval(l, r any) (res bool, err error) {
 	}
 }
 
-func (o *ComparisonOp) GtEval(l, r any) (res bool, err error) {
+func gtEval(l, r any) (res bool, err error) {
 	switch lv := l.(type) {
 	case int:
 		switch rv := r.(type) {
@@ -240,7 +249,8 @@ func (o *ComparisonOp) GtEval(l, r any) (res bool, err error) {
 		return false, newErrorWrongDataType(">", lv)
 	}
 }
-func (o *ComparisonOp) GteEval(l, r any) (res bool, err error) {
+
+func gteEval(l, r any) (res bool, err error) {
 	switch lv := l.(type) {
 	case int:
 		switch rv := r.(type) {
@@ -271,7 +281,8 @@ func (o *ComparisonOp) GteEval(l, r any) (res bool, err error) {
 		return false, newErrorWrongDataType(">=", lv)
 	}
 }
-func (o *ComparisonOp) LtEval(l, r any) (res bool, err error) {
+
+func ltEval(l, r any) (res bool, err error) {
 	switch lv := l.(type) {
 	case int:
 		switch rv := r.(type) {
@@ -303,7 +314,7 @@ func (o *ComparisonOp) LtEval(l, r any) (res bool, err error) {
 	}
 }
 
-func (o *ComparisonOp) LteEval(l, r any) (res bool, err error) {
+func lteEval(l, r any) (res bool, err error) {
 	switch lv := l.(type) {
 	case int:
 		switch rv := r.(type) {
@@ -334,7 +345,7 @@ func (o *ComparisonOp) LteEval(l, r any) (res bool, err error) {
 		return false, newErrorWrongDataType("<=", lv)
 	}
 }
-func (o *ComparisonOp) NeqEval(l, r any) (res bool, err error) {
+func neqEval(l, r any) (res bool, err error) {
 	switch lv := l.(type) {
 	case int:
 		switch rv := r.(type) {
@@ -371,8 +382,4 @@ func (o *ComparisonOp) NeqEval(l, r any) (res bool, err error) {
 	default:
 		return false, newErrorWrongDataType("!=", lv)
 	}
-}
-
-func (g SubExpr) Eval(syms Symbols) (res bool, err error) {
-	return g.BoolExpr.Eval(syms)
 }

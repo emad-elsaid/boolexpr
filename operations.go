@@ -29,8 +29,8 @@ func ListSymbols(exp *BoolExpr) []string {
 			stack = stack.Push(i.Left)
 			stack = stack.Push(i.Right)
 		case Value:
-			if i.Ident != nil {
-				syms = syms.Push(*i.Ident)
+			if i.Symbol != nil {
+				syms = syms.Push(*i.Symbol)
 			}
 		case SubExpr:
 			stack = stack.Push(i.BoolExpr)

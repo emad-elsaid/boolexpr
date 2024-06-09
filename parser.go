@@ -17,9 +17,7 @@ type BoolExpr struct {
 	OpExprs []OpExpr `@@*`
 }
 
-type Expr interface {
-	Eval(Symbols) (bool, error)
-}
+type Expr interface{}
 
 type SubExpr struct {
 	BoolExpr BoolExpr `"(" @@ ")"`
@@ -46,7 +44,7 @@ type Value struct {
 	Int    *int     `| @Int`
 	String *string  `| @String`
 	Bool   *Boolean `| @("true" | "false")`
-	Ident  *string  `| @Ident`
+	Symbol *string  `| @Ident`
 }
 
 type ComparisonOp struct {

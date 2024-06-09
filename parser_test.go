@@ -25,7 +25,7 @@ func TestParse(t *testing.T) {
 			input: "x > 1",
 			expected: &BoolExpr{
 				Expr: Compare{
-					Left:  Value{Ident: strPtr("x")},
+					Left:  Value{Symbol: strPtr("x")},
 					Op:    ComparisonOp{Gt: true},
 					Right: Value{Int: intPtr(1)},
 				},
@@ -36,7 +36,7 @@ func TestParse(t *testing.T) {
 			input: "x != 1",
 			expected: &BoolExpr{
 				Expr: Compare{
-					Left:  Value{Ident: strPtr("x")},
+					Left:  Value{Symbol: strPtr("x")},
 					Op:    ComparisonOp{Neq: true},
 					Right: Value{Int: intPtr(1)},
 				},
@@ -47,7 +47,7 @@ func TestParse(t *testing.T) {
 			input: "x >= 1",
 			expected: &BoolExpr{
 				Expr: Compare{
-					Left:  Value{Ident: strPtr("x")},
+					Left:  Value{Symbol: strPtr("x")},
 					Op:    ComparisonOp{Gte: true},
 					Right: Value{Int: intPtr(1)},
 				},
@@ -58,9 +58,9 @@ func TestParse(t *testing.T) {
 			input: "x > y",
 			expected: &BoolExpr{
 				Expr: Compare{
-					Left:  Value{Ident: strPtr("x")},
+					Left:  Value{Symbol: strPtr("x")},
 					Op:    ComparisonOp{Gt: true},
-					Right: Value{Ident: strPtr("y")},
+					Right: Value{Symbol: strPtr("y")},
 				},
 			},
 		},
@@ -69,7 +69,7 @@ func TestParse(t *testing.T) {
 			input: "x > 1 and y = 2",
 			expected: &BoolExpr{
 				Expr: Compare{
-					Left:  Value{Ident: strPtr("x")},
+					Left:  Value{Symbol: strPtr("x")},
 					Op:    ComparisonOp{Gt: true},
 					Right: Value{Int: intPtr(1)},
 				},
@@ -77,7 +77,7 @@ func TestParse(t *testing.T) {
 					{
 						Op: LogicalOp{And: true},
 						Expr: Compare{
-							Left:  Value{Ident: strPtr("y")},
+							Left:  Value{Symbol: strPtr("y")},
 							Op:    ComparisonOp{Eq: true},
 							Right: Value{Int: intPtr(2)},
 						},
@@ -90,7 +90,7 @@ func TestParse(t *testing.T) {
 			input: `x > 1 and y = 2 or ( x = "hello" or z = true ) and test = false`,
 			expected: &BoolExpr{
 				Expr: Compare{
-					Left:  Value{Ident: strPtr("x")},
+					Left:  Value{Symbol: strPtr("x")},
 					Op:    ComparisonOp{Gt: true},
 					Right: Value{Int: intPtr(1)},
 				},
@@ -98,7 +98,7 @@ func TestParse(t *testing.T) {
 					{
 						Op: LogicalOp{And: true},
 						Expr: Compare{
-							Left:  Value{Ident: strPtr("y")},
+							Left:  Value{Symbol: strPtr("y")},
 							Op:    ComparisonOp{Eq: true},
 							Right: Value{Int: intPtr(2)},
 						},
@@ -108,7 +108,7 @@ func TestParse(t *testing.T) {
 						Expr: SubExpr{
 							BoolExpr: BoolExpr{
 								Expr: Compare{
-									Left:  Value{Ident: strPtr("x")},
+									Left:  Value{Symbol: strPtr("x")},
 									Op:    ComparisonOp{Eq: true},
 									Right: Value{String: strPtr("hello")},
 								},
@@ -116,7 +116,7 @@ func TestParse(t *testing.T) {
 									{
 										Op: LogicalOp{Or: true},
 										Expr: Compare{
-											Left:  Value{Ident: strPtr("z")},
+											Left:  Value{Symbol: strPtr("z")},
 											Op:    ComparisonOp{Eq: true},
 											Right: Value{Bool: boolPtr(true)},
 										},
@@ -128,7 +128,7 @@ func TestParse(t *testing.T) {
 					{
 						Op: LogicalOp{And: true},
 						Expr: Compare{
-							Left:  Value{Ident: strPtr("test")},
+							Left:  Value{Symbol: strPtr("test")},
 							Op:    ComparisonOp{Eq: true},
 							Right: Value{Bool: boolPtr(false)},
 						},
