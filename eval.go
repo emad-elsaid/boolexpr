@@ -104,22 +104,32 @@ func (v *Value) Eval(syms Symbols) (any, error) {
 			return i, nil
 		case func() bool:
 			return i(), nil
+		case func() (bool, error):
+			return i()
 		case int:
 			return i, nil
 		case func() int:
 			return i(), nil
+		case func() (int, error):
+			return i()
 		case string:
 			return i, nil
 		case func() string:
 			return i(), nil
+		case func() (string, error):
+			return i()
 		case float64:
 			return i, nil
 		case func() float64:
 			return i(), nil
+		case func() (float64, error):
+			return i()
 		case func() any:
 			return i(), nil
+		case func() (any, error):
+			return i()
 		default:
-			return false, fmt.Errorf("%w, Symbol: %s of type %T", ErrSymbolTypeUnknown, *v.Ident, *v.Ident)
+			return false, fmt.Errorf("%w, Symbol: %s of type %T", ErrSymbolTypeUnknown, *v.Ident, i)
 		}
 	} else {
 		return nil, ErrValueDoesntHaveAnyVal

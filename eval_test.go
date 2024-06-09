@@ -2,6 +2,7 @@ package boolexpr
 
 import (
 	"fmt"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -138,6 +139,13 @@ func TestEval(t *testing.T) {
 			},
 		},
 		{
+			input:    "x = true",
+			expected: true,
+			symbols: map[string]any{
+				"x": func() (any, error) { return true, nil },
+			},
+		},
+		{
 			input:    `x >= 10 and y < 0`,
 			expected: true,
 			symbols: map[string]any{
@@ -261,6 +269,13 @@ func TestEvalErrors(t *testing.T) {
 			expected: ErrSymbolNotFound,
 			symbols: map[string]any{
 				"x": func() any { return 5 },
+			},
+		},
+		{
+			input:    "x = x and ( x > y )",
+			expected: io.ErrShortBuffer,
+			symbols: map[string]any{
+				"x": func() (any, error) { return 5, io.ErrShortBuffer },
 			},
 		},
 

@@ -42,11 +42,6 @@ symbols = map[string]func() any{
 output, err = ast.Eval(symbols) // Output: false, nil
 ```
 
-Symbols map is a map from `string` (the variable name) to `any` value:
-* If the value is a literal (string, int, float, bool) it'll be used
-* If it's a `func() string/int/float/bool` it'll be evaluated and the return value will be used
-* If it's a `func() any` it'll be also evaluated and the return value used.
-
 # Syntax
 
 The syntax supports:
@@ -58,6 +53,11 @@ The syntax supports:
 * The comparison must always be in the form `value operator value`
   * value can be a symbol or a literal e.g `x`, `1`, `true`, `"hello"`
   * operator is one of the comparison operators
+Symbols map is a map from `string` (the variable name) to `any` value:
+* If the value is a literal (string, int, float, bool) it'll be used
+* If it's a `func() string/int/float/bool` it'll be evaluated and the return value will be used
+* If it's a `func() any` it'll be also evaluated and the return value used.
+* If it's a `func() (string/int/float/bool, error)` the value returned will be used if no error. If an error is returned the evaluation is terminated and the error is returned.
 
 # Expressions examples:
 
