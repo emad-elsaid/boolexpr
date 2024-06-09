@@ -11,101 +11,136 @@ func TestEval(t *testing.T) {
 	tcs := []struct {
 		input    string
 		expected bool
-		symbols  map[string]func() any
+		symbols  map[string]any
 	}{
 		{
 			input:    "x = 1",
 			expected: true,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return 1 },
+			},
+		},
+		{
+			input:    "x = 1",
+			expected: true,
+			symbols: map[string]any{
+				"x": 1,
+			},
+		},
+		{
+			input:    "x = 1",
+			expected: true,
+			symbols: map[string]any{
+				"x": 1.0,
+			},
+		},
+		{
+			input:    `x = "hello"`,
+			expected: true,
+			symbols: map[string]any{
+				"x": "hello",
+			},
+		},
+		{
+			input:    `x = "hello"`,
+			expected: false,
+			symbols: map[string]any{
+				"x": "world",
+			},
+		},
+		{
+			input:    `x = true`,
+			expected: true,
+			symbols: map[string]any{
+				"x": true,
 			},
 		},
 		{
 			input:    "x = 2",
 			expected: false,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return 1 },
 			},
 		},
 		{
 			input:    `x = "Hello"`,
 			expected: true,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return "Hello" },
 			},
 		},
 		{
 			input:    `x = "Hello"`,
 			expected: false,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return "World" },
 			},
 		},
 		{
 			input:    `x = 2`,
 			expected: false,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return 2.4 },
 			},
 		},
 		{
 			input:    `x = 2`,
 			expected: true,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return 2.0 },
 			},
 		},
 		{
 			input:    `x >= 10`,
 			expected: true,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return 11 },
 			},
 		},
 		{
 			input:    `x != 10`,
 			expected: true,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return 11 },
 			},
 		},
 		{
 			input:    `x <= 10`,
 			expected: false,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return 11 },
 			},
 		},
 		{
 			input:    "x = 1.0",
 			expected: true,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return 1.0 },
 			},
 		},
 		{
 			input:    "x = 1.1",
 			expected: false,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return 1.0 },
 			},
 		},
 		{
 			input:    "10 = 1.0 or 1.0 = 10 or 1.0 = 10.0 or 10.0 = 1.0",
 			expected: false,
-			symbols:  map[string]func() any{},
+			symbols:  map[string]any{},
 		},
 		{
 			input:    "x = true",
 			expected: true,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return true },
 			},
 		},
 		{
 			input:    `x >= 10 and y < 0`,
 			expected: true,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return 11 },
 				"y": func() any { return -1 },
 			},
@@ -113,7 +148,7 @@ func TestEval(t *testing.T) {
 		{
 			input:    `x >= 10 and y < 0`,
 			expected: false,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return 11 },
 				"y": func() any { return 0 },
 			},
@@ -121,7 +156,7 @@ func TestEval(t *testing.T) {
 		{
 			input:    `x >= 10 or y < 0`,
 			expected: true,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return 11 },
 				"y": func() any { return 0 },
 			},
@@ -129,7 +164,7 @@ func TestEval(t *testing.T) {
 		{
 			input:    `x >= 10 or y < 0 or ( z = "hello" or z = "world" )`,
 			expected: true,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return 0 },
 				"y": func() any { return 0 },
 				"z": func() any { return "hello" },
@@ -138,7 +173,7 @@ func TestEval(t *testing.T) {
 		{
 			input:    `x >= 10 or y < 0 or ( z = "hello" or z = "world" )`,
 			expected: false,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return 0 },
 				"y": func() any { return 0 },
 				"z": func() any { return "NO" },
@@ -147,7 +182,7 @@ func TestEval(t *testing.T) {
 		{
 			input:    `x > y and y > z`,
 			expected: true,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return 10 },
 				"y": func() any { return 5 },
 				"z": func() any { return 2 },
@@ -156,7 +191,7 @@ func TestEval(t *testing.T) {
 		{
 			input:    `x > y and y > z`,
 			expected: false,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return 10 },
 				"y": func() any { return 5 },
 				"z": func() any { return 6 },
@@ -206,25 +241,25 @@ func TestEvalErrors(t *testing.T) {
 	tcs := []struct {
 		input    string
 		expected error
-		symbols  map[string]func() any
+		symbols  map[string]any
 	}{
 		{
 			input: "> y",
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"y": func() any { return 5 },
 			},
 		},
 		{
 			input:    "x != true or y < 0",
 			expected: ErrSymbolNotFound,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return true },
 			},
 		},
 		{
 			input:    "x = x and ( x > y )",
 			expected: ErrSymbolNotFound,
-			symbols: map[string]func() any{
+			symbols: map[string]any{
 				"x": func() any { return 5 },
 			},
 		},
@@ -271,7 +306,7 @@ func TestEvalShortCircuit(t *testing.T) {
 	t.Run("short circuit and", func(t *testing.T) {
 		input := `x = 0 and y = 0`
 		expected := false
-		symbols := map[string]func() any{
+		symbols := map[string]any{
 			"x": func() any { return 1 },
 			"y": func() any {
 				t.Error("y is called while it shouldn't")
@@ -287,7 +322,7 @@ func TestEvalShortCircuit(t *testing.T) {
 	t.Run("short circuit or", func(t *testing.T) {
 		input := `x = 0 or y = 0`
 		expected := true
-		symbols := map[string]func() any{
+		symbols := map[string]any{
 			"x": func() any { return 0 },
 			"y": func() any {
 				t.Error("y is called while it shouldn't")

@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-type Symbols map[string]func() any
+type Symbols map[string]any
 
 // Eval parses and evals the expression against a map of symbols
 func Eval(s string, syms Symbols) (bool, error) {
@@ -82,6 +82,7 @@ func (o *OpExpr) Eval(syms Symbols, left bool) (res bool, err error) {
 }
 
 var ErrValueDoesntHaveAnyVal = errors.New("Value is not specified")
+var ErrSymbolTypeUnknown = errors.New("Symbol type not supported")
 
 func (v *Value) Eval(syms Symbols) (any, error) {
 	if v.Bool != nil {
@@ -95,10 +96,31 @@ func (v *Value) Eval(syms Symbols) (any, error) {
 	} else if v.Ident != nil {
 		sym, ok := syms[*v.Ident]
 		if !ok {
-			return false, ErrSymbolNotFound
+			return false, fmt.Errorf("%w, Symbol: %s", ErrSymbolNotFound, *v.Ident)
 		}
 
-		return sym(), nil
+		switch i := sym.(type) {
+		case bool:
+			return i, nil
+		case func() bool:
+			return i(), nil
+		case int:
+			return i, nil
+		case func() int:
+			return i(), nil
+		case string:
+			return i, nil
+		case func() string:
+			return i(), nil
+		case float64:
+			return i, nil
+		case func() float64:
+			return i(), nil
+		case func() any:
+			return i(), nil
+		default:
+			return false, fmt.Errorf("%w, Symbol: %s of type %T", ErrSymbolTypeUnknown, *v.Ident, *v.Ident)
+		}
 	} else {
 		return nil, ErrValueDoesntHaveAnyVal
 	}
