@@ -1,13 +1,14 @@
 package boolexpr
 
 import (
+	. "github.com/emad-elsaid/boolexpr/internal"
 	"github.com/emad-elsaid/types"
 )
 
 // ListSymbols returns a list of symbols used in the expression
-func ListSymbols(exp *BoolExpr) []string {
+func ListSymbols(exp Expression) []string {
 	var stack types.Slice[any]
-	stack = stack.Push(exp)
+	stack = stack.Push(exp.BoolExpr)
 	syms := types.Slice[string]{}
 
 	for len(stack) > 0 {

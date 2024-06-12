@@ -3,6 +3,8 @@ package boolexpr
 import (
 	"errors"
 	"fmt"
+
+	. "github.com/emad-elsaid/boolexpr/internal"
 )
 
 var (
@@ -39,7 +41,7 @@ func Eval(s string, syms Symbols) (bool, error) {
 }
 
 // EvalBoolExpr evaluate a parsed expression against a map of symbols
-func EvalBoolExpr(b *BoolExpr, syms Symbols) (res bool, err error) {
+func EvalBoolExpr(b Expression, syms Symbols) (res bool, err error) {
 	if res, err = evalExpr(b.Expr, syms); err != nil {
 		return
 	}
@@ -69,7 +71,7 @@ func evalExpr(b Expr, syms Symbols) (res bool, err error) {
 
 		return evalComparisonOp(e.Op, l, r)
 	case SubExpr:
-		if res, err = EvalBoolExpr(&e.BoolExpr, syms); err != nil {
+		if res, err = EvalBoolExpr(Expression{&e.BoolExpr}, syms); err != nil {
 			return
 		}
 	default:

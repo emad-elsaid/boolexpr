@@ -3,6 +3,7 @@ package boolexpr
 import (
 	"testing"
 
+	. "github.com/emad-elsaid/boolexpr/internal"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -143,7 +144,7 @@ func TestParse(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			output, err := Parse(tc.input)
 			assert.NoError(t, err)
-			assert.Equal(t, tc.expected, output)
+			assert.Equal(t, Expression{tc.expected}, output)
 		})
 	}
 }
