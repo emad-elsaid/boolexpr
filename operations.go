@@ -8,7 +8,7 @@ import (
 // ListSymbols returns a list of symbols used in the expression
 func ListSymbols(exp Expression) []string {
 	var stack types.Slice[any]
-	stack = stack.Push(exp.BoolExpr)
+	stack = stack.Push(exp.e)
 	syms := types.Slice[string]{}
 
 	for len(stack) > 0 {

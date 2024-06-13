@@ -37,16 +37,16 @@ func Eval(s string, syms Symbols) (bool, error) {
 		return false, err
 	}
 
-	return EvalBoolExpr(ast, syms)
+	return EvalExpression(ast, syms)
 }
 
-// EvalBoolExpr evaluate a parsed expression against a map of symbols
-func EvalBoolExpr(b Expression, syms Symbols) (res bool, err error) {
-	if res, err = evalExpr(b.Expr, syms); err != nil {
+// EvalExpression evaluate a parsed expression against a map of symbols
+func EvalExpression(b Expression, syms Symbols) (res bool, err error) {
+	if res, err = evalExpr(b.e.Expr, syms); err != nil {
 		return
 	}
 
-	for _, e := range b.OpExprs {
+	for _, e := range b.e.OpExprs {
 		res, err = evalOpExpr(e, syms, res)
 		if err != nil {
 			return
@@ -71,7 +71,7 @@ func evalExpr(b Expr, syms Symbols) (res bool, err error) {
 
 		return evalComparisonOp(e.Op, l, r)
 	case SubExpr:
-		if res, err = EvalBoolExpr(Expression{&e.BoolExpr}, syms); err != nil {
+		if res, err = EvalExpression(Expression{&e.BoolExpr}, syms); err != nil {
 			return
 		}
 	default:

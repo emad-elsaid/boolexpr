@@ -17,5 +17,5 @@ var parser, parserErr = participle.Build[internal.BoolExpr](
 )
 
 type Expression struct {
-	*internal.BoolExpr
+	e *internal.BoolExpr
 }
