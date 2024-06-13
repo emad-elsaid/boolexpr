@@ -41,12 +41,12 @@ func Eval(s string, syms Symbols) (bool, error) {
 }
 
 // EvalExpression evaluate a parsed expression against a map of symbols
-func EvalExpression(b Expression, syms Symbols) (res bool, err error) {
-	if res, err = evalExpr(b.e.Expr, syms); err != nil {
+func EvalExpression(e Expression, syms Symbols) (res bool, err error) {
+	if res, err = evalExpr(e.e.Expr, syms); err != nil {
 		return
 	}
 
-	for _, e := range b.e.OpExprs {
+	for _, e := range e.e.OpExprs {
 		res, err = evalOpExpr(e, syms, res)
 		if err != nil {
 			return
