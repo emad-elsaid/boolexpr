@@ -28,8 +28,6 @@ func newErrorWrongDataType(op string, l any) error {
 		op, l, l)
 }
 
-type Symbols map[string]any
-
 // Eval parses and evals the expression against a map of symbols
 func Eval(s string, syms Symbols) (bool, error) {
 	ast, err := Parse(s)
@@ -121,7 +119,7 @@ func evalValue(v Value, syms Symbols) (any, error) {
 	} else if v.String != nil {
 		return *v.String, nil
 	} else if v.Symbol != nil {
-		sym, ok := syms[*v.Symbol]
+		sym, ok := syms.Get(*v.Symbol)
 		if !ok {
 			return false, fmt.Errorf("%w, Symbol: %s", ErrSymbolNotFound, *v.Symbol)
 		}

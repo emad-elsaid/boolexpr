@@ -12,7 +12,7 @@ func TestEval(t *testing.T) {
 	tcs := []struct {
 		input    string
 		expected bool
-		symbols  map[string]any
+		symbols  SymbolsMap
 	}{
 		{
 			input:    "x = 1",
@@ -249,7 +249,7 @@ func TestEvalErrors(t *testing.T) {
 	tcs := []struct {
 		input    string
 		expected error
-		symbols  map[string]any
+		symbols  SymbolsMap
 	}{
 		{
 			input: "> y",
@@ -329,7 +329,7 @@ func TestEvalShortCircuit(t *testing.T) {
 			},
 		}
 
-		actual, err := Eval(input, symbols)
+		actual, err := Eval(input, SymbolsMap(symbols))
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 	})
@@ -345,7 +345,7 @@ func TestEvalShortCircuit(t *testing.T) {
 			},
 		}
 
-		actual, err := Eval(input, symbols)
+		actual, err := Eval(input, SymbolsMap(symbols))
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 	})
