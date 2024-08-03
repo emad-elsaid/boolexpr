@@ -42,56 +42,57 @@ func (s *SymbolsCached) Used() map[string]any {
 	return s.used
 }
 
+// _get is uncached function that gets the value for key and execute the value if it's a function and keep track of the key in `used`
+func (s *SymbolsCached) _get(key string) (any, error) {
+	v, ok := s.m[key]
+	if !ok {
+		return v, fmt.Errorf("Symbol: %s, %w", key, ErrSymbolNotFound)
+	}
+
+	var resolved any
+	var err error
+
+	switch i := v.(type) {
+	case func() bool:
+		resolved = i()
+	case func() (bool, error):
+		resolved, err = i()
+	case func() int:
+		resolved = i()
+	case func() (int, error):
+		resolved, err = i()
+	case func() string:
+		resolved = i()
+	case func() (string, error):
+		resolved, err = i()
+	case func() float64:
+		resolved = i()
+	case func() (float64, error):
+		resolved, err = i()
+	case func() any:
+		resolved = i()
+	case func() (any, error):
+		resolved, err = i()
+	}
+
+	if err != nil {
+		return v, fmt.Errorf("Symbol: %s, %w", key, err)
+	}
+
+	s.usedlck.Lock()
+	s.used[key] = resolved
+	s.usedlck.Unlock()
+
+	return v, nil
+}
+
 func NewSymbolsCached(m map[string]any) *SymbolsCached {
 	s := &SymbolsCached{
 		m:    m,
 		used: map[string]any{},
 	}
 
-	getter := memoize.NewWithErr(func(key string) (any, error) {
-		v, ok := s.m[key]
-		if !ok {
-			return v, fmt.Errorf("Symbol: %s, %w", key, ErrSymbolNotFound)
-		}
-
-		var resolved any
-		var err error
-
-		switch i := v.(type) {
-		case func() bool:
-			resolved = i()
-		case func() (bool, error):
-			resolved, err = i()
-		case func() int:
-			resolved = i()
-		case func() (int, error):
-			resolved, err = i()
-		case func() string:
-			resolved = i()
-		case func() (string, error):
-			resolved, err = i()
-		case func() float64:
-			resolved = i()
-		case func() (float64, error):
-			resolved, err = i()
-		case func() any:
-			resolved = i()
-		case func() (any, error):
-			resolved, err = i()
-		}
-
-		if err != nil {
-			return v, fmt.Errorf("Symbol: %s, %w", key, err)
-		}
-
-		s.usedlck.Lock()
-		s.used[key] = resolved
-		s.usedlck.Unlock()
-
-		return v, nil
-	})
-
-	s.getCached = getter
+	s.getCached = memoize.NewWithErr(s._get)
 
 	return s
 }
