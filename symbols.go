@@ -83,7 +83,7 @@ func (s *SymbolsCached) _get(key string) (any, error) {
 	s.used[key] = resolved
 	s.usedlck.Unlock()
 
-	return v, nil
+	return resolved, nil
 }
 
 func NewSymbolsCached(m map[string]any) *SymbolsCached {
