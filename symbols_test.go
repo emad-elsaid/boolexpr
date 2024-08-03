@@ -1,6 +1,7 @@
 package boolexpr
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -28,6 +29,21 @@ func TestSymbolsCached(t *testing.T) {
 		assert.False(t, res)
 
 		expected := map[string]any{"x": 1}
+		assert.Equal(t, expected, s.Used())
+	})
+
+	t.Run("i a function returned error, still records symbols", func(t *testing.T) {
+		s := NewSymbolsCached(map[string]any{
+			"x": func() int { return 1 },
+			"y": func() int { return 2 },
+			"z": func() (int, error) { return 3, fmt.Errorf("Z errored") },
+		})
+
+		res, err := Eval("x = 1 and y = 2 and z = 3", s)
+		assert.Error(t, err)
+		assert.False(t, res)
+
+		expected := map[string]any{"x": 1, "y": 2}
 		assert.Equal(t, expected, s.Used())
 	})
 }
