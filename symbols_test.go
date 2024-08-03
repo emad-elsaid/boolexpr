@@ -1,9 +1,33 @@
 package boolexpr
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestSymbolsMap(t *testing.T) {
 	t.Run("implements Symbols", func(t *testing.T) {
 		var _ Symbols = SymbolsMap{}
+	})
+}
+
+func TestSymbolsCached(t *testing.T) {
+	t.Run("implements Symbols", func(t *testing.T) {
+		var _ Symbols = NewSymbolsCached(nil)
+	})
+
+	t.Run("keep track of used variables", func(t *testing.T) {
+		s := NewSymbolsCached(map[string]any{
+			"x": func() int { return 1 },
+			"y": func() int { return 2 },
+		})
+
+		res, err := Eval("x = 0 and y = 0", s)
+		assert.NoError(t, err)
+		assert.False(t, res)
+
+		expected := map[string]any{"x": 1}
+		assert.Equal(t, expected, s.Used())
 	})
 }

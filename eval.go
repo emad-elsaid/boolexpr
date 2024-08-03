@@ -119,9 +119,9 @@ func evalValue(v Value, syms Symbols) (any, error) {
 	} else if v.String != nil {
 		return *v.String, nil
 	} else if v.Symbol != nil {
-		sym, ok := syms.Get(*v.Symbol)
-		if !ok {
-			return false, fmt.Errorf("%w, Symbol: %s", ErrSymbolNotFound, *v.Symbol)
+		sym, err := syms.Get(*v.Symbol)
+		if err != nil {
+			return false, err
 		}
 
 		switch i := sym.(type) {
