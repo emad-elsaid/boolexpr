@@ -73,6 +73,8 @@ func (s *SymbolsCached) _get(key string) (any, error) {
 		resolved = i()
 	case func() (any, error):
 		resolved, err = i()
+	default:
+		resolved = i
 	}
 
 	if err != nil {

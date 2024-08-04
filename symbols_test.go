@@ -18,6 +18,20 @@ func TestSymbolsCached(t *testing.T) {
 		var _ Symbols = NewSymbolsCached(nil)
 	})
 
+	t.Run("Works for direct values", func(t *testing.T) {
+		s := NewSymbolsCached(map[string]any{
+			"x": 1,
+			"y": 2,
+		})
+
+		res, err := Eval("x = 1 and x != 0 and y = 2 and y != 0", s)
+		assert.NoError(t, err)
+		assert.True(t, res)
+
+		expected := map[string]any{"x": 1, "y": 2}
+		assert.Equal(t, expected, s.Used())
+	})
+
 	t.Run("eval with variables with values mixed (funcs, literals)", func(t *testing.T) {
 		xcalled := 0
 		ycalled := 0
