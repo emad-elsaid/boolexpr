@@ -13,7 +13,7 @@ BoolExpr allows your program user to write a bool expression in the form: `x = 1
 You can parse and evaluate the expression in one call
 ```go
 exp := `x = 10 and y >= 20 and z = "hello"`
-symbols := map[string]func() any{
+var symbols SymbolsMap = map[string]any{
     "x": func() any { return 10 },
     "y": 30,
     "z": func() string { return "hello" },
@@ -27,7 +27,7 @@ or you can parse and evaulate multiple times
 exp := `x = 10 and y >= 20 and z = "hello"`
 ast, err := Parse(exp)
 
-symbols := map[string]func() any{
+var symbols SymbolsMap = map[string]any{
     "x": func() any { return 10 },
     "y": func() any { return 30 },
     "z": func() any { return "hello" },
