@@ -76,4 +76,4 @@ BoolExpr will short circuit in two situations:
 
 # Examples
 
-* A basic example in Go playground: https://go.dev/play/p/gONexex0d7Q
+* A basic example in Go playground: https://go.dev/play/p/4mr_z20q3C2
