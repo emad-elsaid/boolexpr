@@ -29,6 +29,8 @@ func ListSymbols(exp Expression) []string {
 		case Compare:
 			stack = stack.Push(i.Left)
 			stack = stack.Push(i.Right)
+		case BoolValue:
+			stack = stack.Push(i.Value)
 		case Value:
 			if i.Symbol != nil {
 				syms = syms.Push(*i.Symbol)

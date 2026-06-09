@@ -13,7 +13,7 @@ func Parse(s string) (Expression, error) {
 
 var parser, parserErr = participle.Build[internal.BoolExpr](
 	participle.Unquote("String"),
-	participle.Union[internal.Expr](internal.Compare{}, internal.SubExpr{}),
+	participle.Union[internal.Expr](internal.Compare{}, internal.SubExpr{}, internal.BoolValue{}),
 )
 
 type Expression struct {

@@ -17,6 +17,10 @@ type Compare struct {
 	Right Value        `@@`
 }
 
+type BoolValue struct {
+	Value Value `@@`
+}
+
 type OpExpr struct {
 	Op   LogicalOp `@@`
 	Expr Expr      `@@`
@@ -36,12 +40,17 @@ type Value struct {
 }
 
 type ComparisonOp struct {
-	Neq bool `@"!" "="`
-	Gte bool `| @">" "="`
-	Lte bool `| @"<" "="`
-	Gt  bool `| @">"`
-	Lt  bool `| @"<"`
-	Eq  bool `| @"="`
+	Neq      bool `@"!" "="`
+	Gte      bool `| @">" "="`
+	Lte      bool `| @"<" "="`
+	Gt       bool `| @">"`
+	Lt       bool `| @"<"`
+	EqEq     bool `| @"=" "="`
+	Eq       bool `| @"="`
+	Contains   bool `| @"contains"`
+	Excludes   bool `| @"excludes"`
+	StartsWith bool `| @"starts_with"`
+	EndsWith   bool `| @"ends_with"`
 }
 
 type Boolean bool

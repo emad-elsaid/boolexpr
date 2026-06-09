@@ -6,7 +6,7 @@
 
 A Go package to evaluate boolean expressions. against a map of variables. variables can be lazy computed using a function that return the value.
 
-BoolExpr allows your program user to write a bool expression in the form: `x = 10 and y > 20 and z = "hello"` and then run it many times against functions: `x,y,z` which returns `int, int, string` values. the evaluation returns a simple `bool`
+BoolExpr allows your program user to write a bool expression in the form: `w == 0 or x = 10 and y > 20 and z = "hello"` and then run it many times against functions: `x,y,z` which returns `int, int, string` values. the evaluation returns a simple `bool`
 
 # Usage
 
@@ -46,18 +46,45 @@ output, err = EvalBoolExpr(ast, symbols) // Output: false, nil
 
 The syntax supports:
 
-* The following comparisons: =, !=, >, <, >=, <=
-* And the logical operators: and, or
+* The following comparisons: `=`, `==`, `!=`, `>`, `<`, `>=`, `<=`, `contains`, `excludes`, `starts_with`, `ends_with`
+* And the logical operators: `and`, `or`
 * And the values types: int, float, string, bool
 * logical expressions can be grouped with `(...)`
 * The comparison must always be in the form `value operator value`
   * value can be a symbol or a literal e.g `x`, `1`, `true`, `"hello"`
   * operator is one of the comparison operators
+* A bare bool symbol or literal can be used without a comparison operator e.g. `active`, `true`
+
 Symbols map is a map from `string` (the variable name) to `any` value:
 * If the value is a literal (string, int, float, bool) it'll be used
 * If it's a `func() string/int/float/bool` it'll be evaluated and the return value will be used
 * If it's a `func() any` it'll be also evaluated and the return value used.
 * If it's a `func() (string/int/float/bool, error)` the value returned will be used if no error. If an error is returned the evaluation is terminated and the error is returned.
+* If it's a `[]string`, `[]int`, `[]float64`, or `[]bool` it can be used with the `contains`/`excludes` operators.
+* The func variants `func() []T` and `func() ([]T, error)` are also supported for each slice type.
+
+### The `contains` and `excludes` operators
+
+`contains` tests whether the left operand contains the right operand. `excludes` is its negation.
+
+| Left type   | Right type         | Behaviour                                               |
+|-------------|--------------------|---------------------------------------------------------|
+| `string`    | `string`           | substring match (`strings.Contains`)                    |
+| `[]string`  | `string`           | element equality                                        |
+| `[]int`     | `int` or `float64` | element equality (int↔float64 compatible, same as `=`)  |
+| `[]float64` | `float64` or `int` | element equality (int↔float64 compatible)               |
+| `[]bool`    | `bool`             | element equality                                        |
+
+Type mismatches (e.g. `[]string contains 1`) return an error.
+
+### The `starts_with` and `ends_with` operators
+
+Both operands must be `string`. Returns an error for any other type.
+
+| Expression | Behaviour |
+|---|---|
+| `"hello" starts_with "he"` | `strings.HasPrefix` |
+| `"hello" ends_with "lo"` | `strings.HasSuffix` |
 
 # Expressions examples:
 
@@ -66,6 +93,13 @@ Symbols map is a map from `string` (the variable name) to `any` value:
 * `x = 10 and y != 20`
 * `x > 10 and y < 20 or z = true`
 * `x != 20 or y = 30 or z = "helloworld" or (a = false and b = true)`
+* `name contains "alice"`
+* `tags contains "go"`
+* `roles contains "admin" and active = true`
+* `tags excludes "deprecated"`
+* `ids excludes 0 and active = true`
+* `name starts_with "Jo"`
+* `email ends_with "@example.com"`
 
 # Evaluation
 

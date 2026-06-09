@@ -15,6 +15,83 @@ func TestEval(t *testing.T) {
 		symbols  SymbolsMap
 	}{
 		{
+			input:    "x == 1",
+			expected: true,
+			symbols: map[string]any{
+				"x": func() any { return 1 },
+			},
+		},
+		{
+			input:    "x == 1",
+			expected: true,
+			symbols: map[string]any{
+				"x": 1,
+			},
+		},
+		{
+			input:    "x == 1",
+			expected: true,
+			symbols: map[string]any{
+				"x": 1.0,
+			},
+		},
+		{
+			input:    `x == "hello"`,
+			expected: true,
+			symbols: map[string]any{
+				"x": "hello",
+			},
+		},
+		{
+			input:    `x == "hello"`,
+			expected: false,
+			symbols: map[string]any{
+				"x": "world",
+			},
+		},
+		{
+			input:    `x == true`,
+			expected: true,
+			symbols: map[string]any{
+				"x": true,
+			},
+		},
+		{
+			input:    "x == 2",
+			expected: false,
+			symbols: map[string]any{
+				"x": func() any { return 1 },
+			},
+		},
+		{
+			input:    `x == "Hello"`,
+			expected: true,
+			symbols: map[string]any{
+				"x": func() any { return "Hello" },
+			},
+		},
+		{
+			input:    `x == "Hello"`,
+			expected: false,
+			symbols: map[string]any{
+				"x": func() any { return "World" },
+			},
+		},
+		{
+			input:    `x == 2`,
+			expected: false,
+			symbols: map[string]any{
+				"x": func() any { return 2.4 },
+			},
+		},
+		{
+			input:    `x == 2`,
+			expected: true,
+			symbols: map[string]any{
+				"x": func() any { return 2.0 },
+			},
+		},
+		{
 			input:    "x = 1",
 			expected: true,
 			symbols: map[string]any{
@@ -233,6 +310,166 @@ func TestEval(t *testing.T) {
 		{input: `1.0 != 1.1`, expected: true},
 		{input: `"AA" != "AB"`, expected: true},
 		{input: `true != false`, expected: true},
+
+		// bare bool value
+		{input: `true`, expected: true},
+		{input: `false`, expected: false},
+		{
+			input:    `x`,
+			expected: true,
+			symbols:  SymbolsMap{"x": true},
+		},
+		{
+			input:    `x`,
+			expected: false,
+			symbols:  SymbolsMap{"x": false},
+		},
+		{
+			input:    `x and y`,
+			expected: true,
+			symbols:  SymbolsMap{"x": true, "y": true},
+		},
+		{
+			input:    `x and y = 1`,
+			expected: true,
+			symbols:  SymbolsMap{"x": true, "y": 1},
+		},
+
+		// contains: string contains substring
+		{input: `"hello world" contains "world"`, expected: true},
+		{input: `"hello world" contains "xyz"`, expected: false},
+		{input: `"hello world" contains ""`, expected: true},
+
+		// contains: []string variable contains a string literal
+		{
+			input:    `tags contains "go"`,
+			expected: true,
+			symbols:  SymbolsMap{"tags": []string{"go", "rust", "c"}},
+		},
+		{
+			input:    `tags contains "java"`,
+			expected: false,
+			symbols:  SymbolsMap{"tags": []string{"go", "rust", "c"}},
+		},
+
+		// contains: []int variable
+		{
+			input:    `ids contains 42`,
+			expected: true,
+			symbols:  SymbolsMap{"ids": []int{1, 42, 99}},
+		},
+		{
+			input:    `ids contains 0`,
+			expected: false,
+			symbols:  SymbolsMap{"ids": []int{1, 42, 99}},
+		},
+		// int/float64 cross-compatibility
+		{
+			input:    `ids contains 42.0`,
+			expected: true,
+			symbols:  SymbolsMap{"ids": []int{1, 42, 99}},
+		},
+		{
+			input:    `ids contains 0.0`,
+			expected: false,
+			symbols:  SymbolsMap{"ids": []int{1, 42, 99}},
+		},
+		// contains: []float64 variable
+		{
+			input:    `scores contains 3.0`,
+			expected: true,
+			symbols:  SymbolsMap{"scores": []float64{1.5, 3.0, 9.9}},
+		},
+		{
+			input:    `scores contains 2.0`,
+			expected: false,
+			symbols:  SymbolsMap{"scores": []float64{1.5, 3.0, 9.9}},
+		},
+		{
+			input:    `scores contains 3`,
+			expected: true,
+			symbols:  SymbolsMap{"scores": []float64{1.5, 3.0, 9.9}},
+		},
+		{
+			input:    `scores contains 2`,
+			expected: false,
+			symbols:  SymbolsMap{"scores": []float64{1.5, 3.0, 9.9}},
+		},
+		// contains: []bool variable
+		{
+			input:    `flags contains true`,
+			expected: true,
+			symbols:  SymbolsMap{"flags": []bool{false, true}},
+		},
+		{
+			input:    `flags contains true`,
+			expected: false,
+			symbols:  SymbolsMap{"flags": []bool{false, false}},
+		},
+
+		// excludes: negation of contains
+		{input: `"hello world" excludes "xyz"`, expected: true},
+		{input: `"hello world" excludes "world"`, expected: false},
+		{
+			input:    `tags excludes "java"`,
+			expected: true,
+			symbols:  SymbolsMap{"tags": []string{"go", "rust"}},
+		},
+		{
+			input:    `tags excludes "go"`,
+			expected: false,
+			symbols:  SymbolsMap{"tags": []string{"go", "rust"}},
+		},
+		{
+			input:    `ids excludes 0`,
+			expected: true,
+			symbols:  SymbolsMap{"ids": []int{1, 2, 3}},
+		},
+		{
+			input:    `ids excludes 1`,
+			expected: false,
+			symbols:  SymbolsMap{"ids": []int{1, 2, 3}},
+		},
+		{
+			input:    `scores excludes 9.9`,
+			expected: false,
+			symbols:  SymbolsMap{"scores": []float64{1.5, 9.9}},
+		},
+		{
+			input:    `scores excludes 2.0`,
+			expected: true,
+			symbols:  SymbolsMap{"scores": []float64{1.5, 9.9}},
+		},
+		{
+			input:    `flags excludes false`,
+			expected: true,
+			symbols:  SymbolsMap{"flags": []bool{true, true}},
+		},
+		{
+			input:    `flags excludes false`,
+			expected: false,
+			symbols:  SymbolsMap{"flags": []bool{true, false}},
+		},
+
+		// starts_with
+		{input: `"hello world" starts_with "hello"`, expected: true},
+		{input: `"hello world" starts_with "world"`, expected: false},
+		{input: `"hello world" starts_with ""`, expected: true},
+		{
+			input:    `name starts_with "Jo"`,
+			expected: true,
+			symbols:  SymbolsMap{"name": "John"},
+		},
+
+		// ends_with
+		{input: `"hello world" ends_with "world"`, expected: true},
+		{input: `"hello world" ends_with "hello"`, expected: false},
+		{input: `"hello world" ends_with ""`, expected: true},
+		{
+			input:    `name ends_with "hn"`,
+			expected: true,
+			symbols:  SymbolsMap{"name": "John"},
+		},
 	}
 
 	for _, tc := range tcs {
@@ -302,6 +539,46 @@ func TestEvalErrors(t *testing.T) {
 
 		{input: `true = 1`, expected: ErrorWrongDataType},
 		{input: `true != 1`, expected: ErrorWrongDataType},
+
+		// bare non-bool value
+		{
+			input:    `x`,
+			expected: ErrorWrongDataType,
+			symbols:  SymbolsMap{"x": 42},
+		},
+
+		// excludes: type mismatch propagates from containsEval
+		{input: `1 excludes "x"`, expected: ErrorWrongDataType},
+
+		// contains: type mismatches
+		{input: `1 contains "x"`, expected: ErrorWrongDataType},
+		{input: `"hello" contains 1`, expected: ErrorWrongDataType},
+		{
+			input:    `scores contains "x"`,
+			expected: ErrorWrongDataType,
+			symbols:  SymbolsMap{"scores": []float64{1.5, 3.0}},
+		},
+		{
+			input:    `tags contains 1`,
+			expected: ErrorWrongDataType,
+			symbols:  SymbolsMap{"tags": []string{"a", "b"}},
+		},
+		{
+			input:    `ids contains "x"`,
+			expected: ErrorWrongDataType,
+			symbols:  SymbolsMap{"ids": []int{1, 2}},
+		},
+		{
+			input:    `flags contains 1`,
+			expected: ErrorWrongDataType,
+			symbols:  SymbolsMap{"flags": []bool{true, false}},
+		},
+
+		// starts_with / ends_with type mismatches
+		{input: `1 starts_with "x"`, expected: ErrorWrongDataType},
+		{input: `"hello" starts_with 1`, expected: ErrorWrongDataType},
+		{input: `1 ends_with "x"`, expected: ErrorWrongDataType},
+		{input: `"hello" ends_with 1`, expected: ErrorWrongDataType},
 	}
 
 	for _, tc := range tcs {

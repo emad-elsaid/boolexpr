@@ -3,8 +3,7 @@ package boolexpr
 import (
 	"fmt"
 	"sync"
-
-	"github.com/emad-elsaid/memoize"
+	"sync/atomic"
 )
 
 // Symbols is an interface that returns the value for symbols for evaluator
@@ -22,79 +21,124 @@ func (s SymbolsMap) Get(key string) (any, error) {
 		return v, fmt.Errorf("Symbol: %s, %w", key, ErrSymbolNotFound)
 	}
 
-	return v, nil
-}
-
-// SymbolsCached implements Symbols interface, wraps map[string]any and keeps track of variables looked up and cache the values returned, gurantees executing any function in the symbols once. suitable for concurrent use
-type SymbolsCached struct {
-	m         map[string]any
-	used      map[string]any
-	usedlck   sync.Mutex
-	getCached func(string) (any, error)
-}
-
-func (s *SymbolsCached) Get(key string) (any, error) {
-	return s.getCached(key)
-}
-
-// Returns a map of variables used and its values, if the value was a function the map will have the result of the function
-func (s *SymbolsCached) Used() map[string]any {
-	return s.used
-}
-
-// _get is uncached function that gets the value for key and execute the value if it's a function and keep track of the key in `used`
-func (s *SymbolsCached) _get(key string) (any, error) {
-	v, ok := s.m[key]
-	if !ok {
-		return v, fmt.Errorf("Symbol: %s, %w", key, ErrSymbolNotFound)
-	}
-
-	var resolved any
-	var err error
-
-	switch i := v.(type) {
-	case func() bool:
-		resolved = i()
-	case func() (bool, error):
-		resolved, err = i()
-	case func() int:
-		resolved = i()
-	case func() (int, error):
-		resolved, err = i()
-	case func() string:
-		resolved = i()
-	case func() (string, error):
-		resolved, err = i()
-	case func() float64:
-		resolved = i()
-	case func() (float64, error):
-		resolved, err = i()
-	case func() any:
-		resolved = i()
-	case func() (any, error):
-		resolved, err = i()
-	default:
-		resolved = i
-	}
-
+	resolved, err := resolveSymbol(v)
 	if err != nil {
-		return v, fmt.Errorf("Symbol: %s, %w", key, err)
+		return nil, fmt.Errorf("Symbol: %s, %w", key, err)
 	}
-
-	s.usedlck.Lock()
-	s.used[key] = resolved
-	s.usedlck.Unlock()
 
 	return resolved, nil
 }
 
-func NewSymbolsCached(m map[string]any) *SymbolsCached {
-	s := &SymbolsCached{
-		m:    m,
-		used: map[string]any{},
+type symbolEntry struct {
+	once sync.Once
+	raw  any
+	val  any
+	err  error
+	used atomic.Bool
+}
+
+// SymbolsCached implements Symbols interface, wraps map[string]any and keeps
+// track of variables looked up and caches the values returned, guarantees
+// executing any function in the symbols once. Suitable for concurrent use.
+//
+// Entries are stored in a contiguous slice; the index map holds name→slice-index
+// to avoid N individual heap pointer allocations that map[string]*symbolEntry would require.
+type SymbolsCached struct {
+	index   map[string]int
+	entries []symbolEntry
+}
+
+func (s *SymbolsCached) Get(key string) (any, error) {
+	idx, ok := s.index[key]
+	if !ok {
+		return nil, fmt.Errorf("symbol: %s, %w", key, ErrSymbolNotFound)
 	}
 
-	s.getCached = memoize.NewWithErr(s._get)
+	e := &s.entries[idx]
+	e.once.Do(func() {
+		defer func() {
+			if r := recover(); r != nil {
+				e.err = fmt.Errorf("symbol: %s panicked: %v", key, r)
+			}
+		}()
 
-	return s
+		resolved, err := resolveSymbol(e.raw)
+		if err != nil {
+			e.err = fmt.Errorf("symbol: %s, %w", key, err)
+			return
+		}
+
+		e.val = resolved
+		e.used.Store(true)
+	})
+
+	return e.val, e.err
+}
+
+// Used returns a map of variables that were accessed and their resolved values.
+func (s *SymbolsCached) Used() map[string]any {
+	result := make(map[string]any)
+
+	for k, idx := range s.index {
+		if s.entries[idx].used.Load() {
+			result[k] = s.entries[idx].val
+		}
+	}
+
+	return result
+}
+
+func NewSymbolsCached(m map[string]any) *SymbolsCached {
+	entries := make([]symbolEntry, 0, len(m))
+	index := make(map[string]int, len(m))
+
+	for k, v := range m {
+		index[k] = len(entries)
+		entries = append(entries, symbolEntry{raw: v})
+	}
+
+	return &SymbolsCached{index: index, entries: entries}
+}
+
+func resolveSymbol(v any) (any, error) {
+	switch i := v.(type) {
+	case func() bool:
+		return i(), nil
+	case func() (bool, error):
+		return i()
+	case func() int:
+		return i(), nil
+	case func() (int, error):
+		return i()
+	case func() string:
+		return i(), nil
+	case func() (string, error):
+		return i()
+	case func() float64:
+		return i(), nil
+	case func() (float64, error):
+		return i()
+	case func() []string:
+		return i(), nil
+	case func() ([]string, error):
+		return i()
+	case func() []int:
+		return i(), nil
+	case func() ([]int, error):
+		return i()
+	case func() []float64:
+		return i(), nil
+	case func() ([]float64, error):
+		return i()
+	case func() []bool:
+		return i(), nil
+	case func() ([]bool, error):
+		return i()
+	case func() any:
+		return i(), nil
+	case func() (any, error):
+		return i()
+	default:
+		return i, nil
+	}
 }
