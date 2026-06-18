@@ -51,6 +51,7 @@ type ComparisonOp struct {
 	Excludes   bool `parser:"| @'excludes'"`
 	StartsWith bool `parser:"| @'starts_with'"`
 	EndsWith   bool `parser:"| @'ends_with'"`
+	Match      bool `parser:"| @'match'"`
 }
 
 type Boolean bool

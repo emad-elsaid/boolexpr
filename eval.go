@@ -3,19 +3,34 @@ package boolexpr
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
+	"sync"
 
 	. "github.com/emad-elsaid/boolexpr/internal"
 )
 
+// Errors returned during evaluation. Use errors.Is to test for them; the
+// returned errors are wrapped with additional context (operator, value types).
 var (
-	ErrSymbolNotFound                 = errors.New("Symbol not found")
+	// ErrSymbolNotFound is returned when an expression references a symbol
+	// that is absent from the provided Symbols.
+	ErrSymbolNotFound = errors.New("Symbol not found")
+	// ErrLogicalOperationUndefinedState indicates a logical operator node that
+	// is neither "and" nor "or"; it signals a malformed expression tree.
 	ErrLogicalOperationUndefinedState = errors.New("Logical operation not specified")
-	ErrValueDoesntHaveAnyVal          = errors.New("Value is not specified")
-	ErrSymbolTypeUnknown              = errors.New("Symbol type not supported")
-	ErrOpDoesnotHaveVal               = errors.New("Operation not specified")
-	ErrorWrongDataType                = errors.New("Wrong data type")
+	// ErrValueDoesntHaveAnyVal indicates a value node that carries no literal
+	// or symbol; it signals a malformed expression tree.
+	ErrValueDoesntHaveAnyVal = errors.New("Value is not specified")
+	// ErrSymbolTypeUnknown is returned for an unsupported symbol value type.
+	ErrSymbolTypeUnknown = errors.New("Symbol type not supported")
+	// ErrOpDoesnotHaveVal indicates a comparison node with no operator set; it
+	// signals a malformed expression tree.
+	ErrOpDoesnotHaveVal = errors.New("Operation not specified")
+	// ErrorWrongDataType is returned when an operator is applied to operands of
+	// incompatible types, e.g. comparing a string with an int.
+	ErrorWrongDataType = errors.New("Wrong data type")
 )
 
 func newErrorDataTypeMismatch(op string, l, r any) error {
@@ -30,7 +45,10 @@ func newErrorWrongDataType(op string, l any) error {
 		op, l, l)
 }
 
-// Eval parses and evals the expression against a map of symbols
+// Eval parses the expression string s and evaluates it against syms in a
+// single call. It is a convenience wrapper around [Parse] followed by
+// [EvalExpression]. When the same expression is evaluated more than once,
+// prefer parsing it once with [Parse] and reusing the result.
 func Eval(s string, syms Symbols) (bool, error) {
 	ast, err := Parse(s)
 	if err != nil {
@@ -40,7 +58,9 @@ func Eval(s string, syms Symbols) (bool, error) {
 	return EvalExpression(ast, syms)
 }
 
-// EvalExpression evaluate a parsed expression against a map of symbols
+// EvalExpression evaluates an already-parsed [Expression] against syms and
+// returns the boolean result. A single parsed Expression may be evaluated
+// concurrently against different Symbols.
 func EvalExpression(e Expression, syms Symbols) (res bool, err error) {
 	if res, err = evalExpr(e.e.Expr, syms); err != nil {
 		return
@@ -234,6 +254,8 @@ func evalComparisonOpVal(o ComparisonOp, l, r evalVal) (bool, error) {
 		return startsWithEval(l.toAny(), r.toAny())
 	} else if o.EndsWith {
 		return endsWithEval(l.toAny(), r.toAny())
+	} else if o.Match {
+		return matchEval(l.toAny(), r.toAny())
 	}
 
 	return evalCmpVal(o, l, r)
@@ -343,6 +365,8 @@ func opName(o ComparisonOp) string {
 		return "starts_with"
 	case o.EndsWith:
 		return "ends_with"
+	case o.Match:
+		return "match"
 	default:
 		return "?"
 	}
@@ -371,6 +395,8 @@ func evalComparisonOp(o ComparisonOp, l, r any) (res bool, err error) {
 		return startsWithEval(l, r)
 	} else if o.EndsWith {
 		return endsWithEval(l, r)
+	} else if o.Match {
+		return matchEval(l, r)
 	} else {
 		return false, ErrOpDoesnotHaveVal
 	}
@@ -625,6 +651,49 @@ func endsWithEval(l, r any) (bool, error) {
 	}
 
 	return strings.HasSuffix(lv, rv), nil
+}
+
+// matchCache memoizes compiled patterns so a regular expression is compiled
+// once per distinct pattern, not on every evaluation. Patterns may originate
+// from symbols, so the pattern string is only known at evaluation time; keying
+// the cache on it covers both literal and symbol-supplied patterns.
+var matchCache sync.Map // map[string]*regexp.Regexp
+
+func compilePattern(pattern string) (*regexp.Regexp, error) {
+	if re, ok := matchCache.Load(pattern); ok {
+		return re.(*regexp.Regexp), nil
+	}
+
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, err
+	}
+
+	actual, _ := matchCache.LoadOrStore(pattern, re)
+	return actual.(*regexp.Regexp), nil
+}
+
+// matchEval reports whether the left string matches the regular expression in
+// the right operand. Both operands must be strings; the pattern uses Go's
+// regexp (RE2) syntax. The match is unanchored, like [regexp.Regexp.MatchString].
+// Compiled patterns are cached so each distinct pattern is compiled only once.
+func matchEval(l, r any) (bool, error) {
+	lv, ok := l.(string)
+	if !ok {
+		return false, newErrorWrongDataType("match", l)
+	}
+
+	rv, ok := r.(string)
+	if !ok {
+		return false, newErrorDataTypeMismatch("match", l, r)
+	}
+
+	re, err := compilePattern(rv)
+	if err != nil {
+		return false, fmt.Errorf("%w, invalid match pattern %q: %v", ErrorWrongDataType, rv, err)
+	}
+
+	return re.MatchString(lv), nil
 }
 
 func neqEval(l, r any) (res bool, err error) {

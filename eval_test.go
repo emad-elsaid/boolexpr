@@ -477,6 +477,29 @@ func TestEval(t *testing.T) {
 			expected: true,
 			symbols:  SymbolsMap{"name": "John"},
 		},
+
+		// match
+		{input: `"pattern123" match "pattern.*"`, expected: true},
+		{input: `"abc" match "^abc$"`, expected: true},
+		{input: `"abcd" match "^abc$"`, expected: false},
+		{
+			input:    `x match "pattern.*"`,
+			expected: true,
+			symbols:  SymbolsMap{"x": "pattern123"},
+		},
+		{
+			input:    `email match pattern`,
+			expected: true,
+			symbols:  SymbolsMap{"email": "joanna@example.com", "pattern": `.+@example\.com$`},
+		},
+		{
+			input:    `x match p`,
+			expected: true,
+			symbols: SymbolsMap{
+				"x": func() string { return "foo42" },
+				"p": func() string { return "[0-9]+" },
+			},
+		},
 	}
 
 	for _, tc := range tcs {
@@ -586,6 +609,11 @@ func TestEvalErrors(t *testing.T) {
 		{input: `"hello" starts_with 1`, expected: ErrorWrongDataType},
 		{input: `1 ends_with "x"`, expected: ErrorWrongDataType},
 		{input: `"hello" ends_with 1`, expected: ErrorWrongDataType},
+
+		// match type mismatches and invalid pattern
+		{input: `1 match "x"`, expected: ErrorWrongDataType},
+		{input: `"hello" match 1`, expected: ErrorWrongDataType},
+		{input: `"hello" match "("`, expected: ErrorWrongDataType},
 	}
 
 	for _, tc := range tcs {

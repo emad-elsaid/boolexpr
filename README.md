@@ -46,7 +46,7 @@ output, err = EvalBoolExpr(ast, symbols) // Output: false, nil
 
 The syntax supports:
 
-* The following comparisons: `=`, `==`, `!=`, `>`, `<`, `>=`, `<=`, `contains`, `excludes`, `starts_with`, `ends_with`
+* The following comparisons: `=`, `==`, `!=`, `>`, `<`, `>=`, `<=`, `contains`, `excludes`, `starts_with`, `ends_with`, `match`
 * And the logical operators: `and` (or `&&`), `or` (or `||`)
 * And the values types: int, float, string, bool
 * logical expressions can be grouped with `(...)`
@@ -86,6 +86,21 @@ Both operands must be `string`. Returns an error for any other type.
 | `"hello" starts_with "he"` | `strings.HasPrefix` |
 | `"hello" ends_with "lo"` | `strings.HasSuffix` |
 
+### The `match` operator
+
+`match` tests whether the left string matches the regular expression given as
+the right operand. Both operands must be `string`; any other type returns an
+error. The pattern may be a literal or another symbol that resolves to a string.
+
+The pattern uses Go's [regexp](https://pkg.go.dev/regexp) (RE2) syntax and the
+match is unanchored (use `^`/`$` to anchor). Compiled patterns are cached, so
+each distinct pattern is compiled only once across all evaluations.
+
+| Expression | Behaviour |
+|---|---|
+| `x match "pattern.*"` | matches `x` against the literal pattern |
+| `email match pattern` | matches `email` against the regex held in symbol `pattern` |
+
 # Expressions examples:
 
 * `x > 1`
@@ -100,6 +115,8 @@ Both operands must be `string`. Returns an error for any other type.
 * `ids excludes 0 and active = true`
 * `name starts_with "Jo"`
 * `email ends_with "@example.com"`
+* `name match "^[A-Z][a-z]+$"`
+* `email match valid_email_regex`
 
 # Evaluation
 

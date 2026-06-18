@@ -6,13 +6,21 @@ import (
 	"sync/atomic"
 )
 
-// Symbols is an interface that returns the value for symbols for evaluator
+// Symbols supplies the value of each symbol referenced by an expression during
+// evaluation. Implementations are provided with [SymbolsMap] and
+// [SymbolsCached]; custom sources (databases, request context, etc.) can be
+// used by implementing this interface.
 type Symbols interface {
-	// returns the value of the key and error if not found or other reasons
+	// Get returns the resolved value for the named symbol, or an error if the
+	// symbol is unknown or its value could not be produced. Errors should wrap
+	// [ErrSymbolNotFound] when the symbol is absent.
 	Get(string) (any, error)
 }
 
-// SymbolsMap is a simple wrapper around map[string]any
+// SymbolsMap is the simplest [Symbols] implementation: a map from symbol name
+// to value. A value may be a literal (string, int, float64, bool), a slice for
+// use with contains/excludes, or a function that is evaluated lazily on each
+// lookup (see [resolveSymbol] for the accepted function signatures).
 type SymbolsMap map[string]any
 
 func (s SymbolsMap) Get(key string) (any, error) {
@@ -75,7 +83,10 @@ func (s *SymbolsCached) Get(key string) (any, error) {
 	return e.val, e.err
 }
 
-// Used returns a map of variables that were accessed and their resolved values.
+// Used returns the symbols that were actually accessed during evaluation,
+// mapped to their resolved values. Because evaluation short-circuits, symbols
+// guarded by an already-decided "and"/"or" are absent. Call it after
+// evaluating to learn which inputs influenced the result.
 func (s *SymbolsCached) Used() map[string]any {
 	result := make(map[string]any)
 
@@ -88,6 +99,10 @@ func (s *SymbolsCached) Used() map[string]any {
 	return result
 }
 
+// NewSymbolsCached builds a [SymbolsCached] from m. The map values follow the
+// same rules as [SymbolsMap]: literals, slices, or lazily-evaluated functions.
+// Each symbol's value (and any function it wraps) is resolved at most once,
+// even across concurrent evaluations.
 func NewSymbolsCached(m map[string]any) *SymbolsCached {
 	entries := make([]symbolEntry, 0, len(m))
 	index := make(map[string]int, len(m))
@@ -100,6 +115,16 @@ func NewSymbolsCached(m map[string]any) *SymbolsCached {
 	return &SymbolsCached{index: index, entries: entries}
 }
 
+// resolveSymbol turns a raw symbol value into the value used during
+// evaluation. Non-function values are returned unchanged. Functions matching
+// one of the supported signatures are called and their result used; the
+// error-returning variants abort evaluation when they return a non-nil error.
+//
+// Supported function signatures are, for T in
+// {bool, int, string, float64, []string, []int, []float64, []bool, any}:
+//
+//	func() T
+//	func() (T, error)
 func resolveSymbol(v any) (any, error) {
 	switch i := v.(type) {
 	case func() bool:

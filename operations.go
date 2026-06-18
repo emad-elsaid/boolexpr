@@ -5,7 +5,10 @@ import (
 	"github.com/emad-elsaid/types"
 )
 
-// ListSymbols returns a list of symbols used in the expression
+// ListSymbols returns the unique symbol names referenced anywhere in the parsed
+// expression, in no particular order. It is useful for validating that every
+// required symbol is available before evaluation, or for building the Symbols
+// set on demand.
 func ListSymbols(exp Expression) []string {
 	var stack types.Slice[any]
 	stack = stack.Push(exp.e)
