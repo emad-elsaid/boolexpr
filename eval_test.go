@@ -282,6 +282,13 @@ func TestEval(t *testing.T) {
 				"z": func() any { return 6 },
 			},
 		},
+		{input: `1 = 1 && 2 = 2`, expected: true},
+		{input: `1 = 1 && 2 = 3`, expected: false},
+		{input: `1 = 2 || 2 = 2`, expected: true},
+		{input: `1 = 2 || 2 = 3`, expected: false},
+		{input: `1 = 1 && 2 = 2 || 3 = 4`, expected: true},
+		{input: `1 = 2 && 2 = 2 || ( 3 = 3 )`, expected: true},
+
 		{input: `1 > 0.9`, expected: true},
 		{input: `1.1 > 1`, expected: true},
 		{input: `1.1 > 1.0`, expected: true},

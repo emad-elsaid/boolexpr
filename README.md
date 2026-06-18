@@ -47,7 +47,7 @@ output, err = EvalBoolExpr(ast, symbols) // Output: false, nil
 The syntax supports:
 
 * The following comparisons: `=`, `==`, `!=`, `>`, `<`, `>=`, `<=`, `contains`, `excludes`, `starts_with`, `ends_with`
-* And the logical operators: `and`, `or`
+* And the logical operators: `and` (or `&&`), `or` (or `||`)
 * And the values types: int, float, string, bool
 * logical expressions can be grouped with `(...)`
 * The comparison must always be in the form `value operator value`

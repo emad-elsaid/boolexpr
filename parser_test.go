@@ -87,6 +87,35 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
+			name:  "2 comparison with && and ||",
+			input: "x > 1 && y = 2 || z = 3",
+			expected: &BoolExpr{
+				Expr: Compare{
+					Left:  Value{Symbol: strPtr("x")},
+					Op:    ComparisonOp{Gt: true},
+					Right: Value{Int: intPtr(1)},
+				},
+				OpExprs: []OpExpr{
+					{
+						Op: LogicalOp{And: true},
+						Expr: Compare{
+							Left:  Value{Symbol: strPtr("y")},
+							Op:    ComparisonOp{Eq: true},
+							Right: Value{Int: intPtr(2)},
+						},
+					},
+					{
+						Op: LogicalOp{Or: true},
+						Expr: Compare{
+							Left:  Value{Symbol: strPtr("z")},
+							Op:    ComparisonOp{Eq: true},
+							Right: Value{Int: intPtr(3)},
+						},
+					},
+				},
+			},
+		},
+		{
 			name:  "2 comparison with group",
 			input: `x > 1 and y = 2 or ( x = "hello" or z = true ) and test = false`,
 			expected: &BoolExpr{

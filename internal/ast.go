@@ -1,56 +1,56 @@
 package internal
 
 type BoolExpr struct {
-	Expr    Expr     `@@`
-	OpExprs []OpExpr `@@*`
+	Expr    Expr     `parser:"@@"`
+	OpExprs []OpExpr `parser:"@@*"`
 }
 
 type Expr interface{}
 
 type SubExpr struct {
-	BoolExpr BoolExpr `"(" @@ ")"`
+	BoolExpr BoolExpr `parser:"'(' @@ ')'"`
 }
 
 type Compare struct {
-	Left  Value        `@@`
-	Op    ComparisonOp `@@`
-	Right Value        `@@`
+	Left  Value        `parser:"@@"`
+	Op    ComparisonOp `parser:"@@"`
+	Right Value        `parser:"@@"`
 }
 
 type BoolValue struct {
-	Value Value `@@`
+	Value Value `parser:"@@"`
 }
 
 type OpExpr struct {
-	Op   LogicalOp `@@`
-	Expr Expr      `@@`
+	Op   LogicalOp `parser:"@@"`
+	Expr Expr      `parser:"@@"`
 }
 
 type LogicalOp struct {
-	And bool `@"and"`
-	Or  bool `| @"or"`
+	And bool `parser:"@'and' | @'&' '&'"`
+	Or  bool `parser:"| @'or' | @'|' '|'"`
 }
 
 type Value struct {
-	Float  *float64 `  @Float`
-	Int    *int     `| @Int`
-	String *string  `| @String`
-	Bool   *Boolean `| @("true" | "false")`
-	Symbol *string  `| @Ident`
+	Float  *float64 `parser:"  @Float"`
+	Int    *int     `parser:"| @Int"`
+	String *string  `parser:"| @String"`
+	Bool   *Boolean `parser:"| @('true' | 'false')"`
+	Symbol *string  `parser:"| @Ident"`
 }
 
 type ComparisonOp struct {
-	Neq      bool `@"!" "="`
-	Gte      bool `| @">" "="`
-	Lte      bool `| @"<" "="`
-	Gt       bool `| @">"`
-	Lt       bool `| @"<"`
-	EqEq     bool `| @"=" "="`
-	Eq       bool `| @"="`
-	Contains   bool `| @"contains"`
-	Excludes   bool `| @"excludes"`
-	StartsWith bool `| @"starts_with"`
-	EndsWith   bool `| @"ends_with"`
+	Neq        bool `parser:"@'!' '='"`
+	Gte        bool `parser:"| @'>' '='"`
+	Lte        bool `parser:"| @'<' '='"`
+	Gt         bool `parser:"| @'>'"`
+	Lt         bool `parser:"| @'<'"`
+	EqEq       bool `parser:"| @'=' '='"`
+	Eq         bool `parser:"| @'='"`
+	Contains   bool `parser:"| @'contains'"`
+	Excludes   bool `parser:"| @'excludes'"`
+	StartsWith bool `parser:"| @'starts_with'"`
+	EndsWith   bool `parser:"| @'ends_with'"`
 }
 
 type Boolean bool
