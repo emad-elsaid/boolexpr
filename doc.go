@@ -46,6 +46,10 @@
 //
 //	x > 10 and y < 20 or (z = true and active)
 //
+// As in Go and most languages, "and" binds tighter than "or", so the example
+// above is evaluated as "(x > 10 and y < 20) or (z = true and active)". Use
+// parentheses to override the default precedence.
+//
 // A bare boolean symbol or literal may be used without a comparison operator,
 // e.g. "active" or "true".
 //

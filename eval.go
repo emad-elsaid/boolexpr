@@ -1,12 +1,14 @@
 package boolexpr
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"regexp"
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	. "github.com/emad-elsaid/boolexpr/internal"
 )
@@ -61,22 +63,60 @@ func Eval(s string, syms Symbols) (bool, error) {
 // EvalExpression evaluates an already-parsed [Expression] against syms and
 // returns the boolean result. A single parsed Expression may be evaluated
 // concurrently against different Symbols.
-func EvalExpression(e Expression, syms Symbols) (res bool, err error) {
-	if res, err = evalExpr(e.e.Expr, syms); err != nil {
-		return
+func EvalExpression(e Expression, syms Symbols) (bool, error) {
+	if e.e == nil {
+		return false, errors.New("EvalExpression called on zero-value Expression; use Parse to obtain a valid Expression")
+	}
+	return evalBoolExpr(e.e, syms)
+}
+
+// evalBoolExpr evaluates the OR level: the leading AND-expression OR-ed with the
+// rest. It short-circuits as soon as one AND-expression is true.
+func evalBoolExpr(b *BoolExpr, syms Symbols) (bool, error) {
+	res, err := evalAndExpr(b.And, syms)
+	if err != nil {
+		return false, err
 	}
 
-	for _, e := range e.e.OpExprs {
-		res, err = evalOpExpr(e, syms, res)
+	for _, o := range b.OrOps {
+		if res {
+			// short circuit: the whole OR is already true
+			return true, nil
+		}
+
+		res, err = evalAndExpr(o.And, syms)
 		if err != nil {
-			return
+			return false, err
 		}
 	}
 
-	return
+	return res, nil
 }
 
-func evalExpr(b Expr, syms Symbols) (res bool, err error) {
+// evalAndExpr evaluates the AND level: the leading primary expression AND-ed
+// with the rest. It short-circuits as soon as one operand is false.
+func evalAndExpr(a AndExpr, syms Symbols) (bool, error) {
+	res, err := evalExpr(a.Expr, syms)
+	if err != nil {
+		return false, err
+	}
+
+	for _, op := range a.AndOps {
+		if !res {
+			// short circuit: the whole AND is already false
+			return false, nil
+		}
+
+		res, err = evalExpr(op.Expr, syms)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	return res, nil
+}
+
+func evalExpr(b Expr, syms Symbols) (bool, error) {
 	switch e := b.(type) {
 	case Compare:
 		l, err := evalValue(e.Left, syms)
@@ -103,43 +143,9 @@ func evalExpr(b Expr, syms Symbols) (res bool, err error) {
 
 		return bv, nil
 	case SubExpr:
-		if res, err = EvalExpression(Expression{&e.BoolExpr}, syms); err != nil {
-			return
-		}
+		return evalBoolExpr(&e.BoolExpr, syms)
 	default:
 		return false, fmt.Errorf("Expr type is unhandled %T", b)
-	}
-
-	return
-}
-
-func evalOpExpr(o OpExpr, syms Symbols, left bool) (res bool, err error) {
-	if o.Op.And {
-		// short circuit if left already false
-		if !left {
-			return false, nil
-		}
-
-		right, err := evalExpr(o.Expr, syms)
-		if err != nil {
-			return false, err
-		}
-
-		return left && right, nil
-	} else if o.Op.Or {
-		// short circuit if left already true
-		if left {
-			return true, nil
-		}
-
-		right, err := evalExpr(o.Expr, syms)
-		if err != nil {
-			return false, err
-		}
-
-		return left || right, nil
-	} else {
-		return false, ErrLogicalOperationUndefinedState
 	}
 }
 
@@ -190,12 +196,28 @@ func (v evalVal) toBool() (bool, bool) {
 	}
 }
 
+// toInt returns the value as an int when the operand is an integer — a literal
+// int or a symbol resolving to int. Floats report false: they are only ever
+// compared through toFloat. Used to keep integer comparisons exact rather than
+// routing large integers through float64, which loses precision above 2^53.
+func (v evalVal) toInt() (int, bool) {
+	switch v.kind {
+	case kindInt:
+		return v.i, true
+	case kindAny:
+		i, ok := v.a.(int)
+		return i, ok
+	default:
+		return 0, false
+	}
+}
+
 func (v evalVal) toFloat() (float64, bool) {
 	switch v.kind {
 	case kindFloat64:
 		return v.f, true
 	case kindInt:
-		return v.f, true
+		return float64(v.i), true
 	case kindAny:
 		switch val := v.a.(type) {
 		case float64:
@@ -229,7 +251,7 @@ func evalValue(v Value, syms Symbols) (evalVal, error) {
 	case v.Float != nil:
 		return evalVal{kind: kindFloat64, f: *v.Float}, nil
 	case v.Int != nil:
-		return evalVal{kind: kindInt, i: *v.Int, f: float64(*v.Int)}, nil
+		return evalVal{kind: kindInt, i: *v.Int}, nil
 	case v.String != nil:
 		return evalVal{kind: kindString, s: *v.String}, nil
 	case v.Symbol != nil:
@@ -246,52 +268,95 @@ func evalValue(v Value, syms Symbols) (evalVal, error) {
 
 func evalComparisonOpVal(o ComparisonOp, l, r evalVal) (bool, error) {
 	if o.Contains {
-		return containsEval(l.toAny(), r.toAny())
+		return containsEval(l, r)
 	} else if o.Excludes {
-		res, err := containsEval(l.toAny(), r.toAny())
-		return !res, err
+		res, err := containsEval(l, r)
+		if err != nil {
+			return false, err
+		}
+		return !res, nil
 	} else if o.StartsWith {
-		return startsWithEval(l.toAny(), r.toAny())
+		return startsWithEval(l, r)
 	} else if o.EndsWith {
-		return endsWithEval(l.toAny(), r.toAny())
+		return endsWithEval(l, r)
 	} else if o.Match {
-		return matchEval(l.toAny(), r.toAny())
+		return matchEval(l, r)
 	}
 
 	return evalCmpVal(o, l, r)
 }
 
-// evalCmpVal handles scalar comparisons on evalVal without boxing literals into any.
-// Falls back to the any-based path only for kindAny (resolved symbol values).
+// evalCmpVal handles scalar comparisons on evalVal without boxing operands into
+// any. For literal operands the concrete type is known from the kind; for
+// kindAny (resolved symbol values) it type-switches on the stored value, while
+// still reading the right operand through the non-boxing accessors.
 func evalCmpVal(o ComparisonOp, l, r evalVal) (bool, error) {
 	switch l.kind {
 	case kindBool:
-		rb, ok := r.toBool()
-		if !ok {
-			return false, newErrorDataTypeMismatch(opName(o), l.toAny(), r.toAny())
-		}
+		return cmpBoolEval(o, l.b, r)
 
-		return applyCmpBool(o, l.b, rb)
-
-	case kindFloat64, kindInt: // both carry f
-		rf, ok := r.toFloat()
-		if !ok {
-			return false, newErrorDataTypeMismatch(opName(o), l.toAny(), r.toAny())
-		}
-
-		return applyCmpFloat(o, l.f, rf)
+	case kindFloat64, kindInt:
+		return cmpNumEval(o, l, r)
 
 	case kindString:
-		rs, ok := r.toString()
-		if !ok {
-			return false, newErrorDataTypeMismatch(opName(o), l.toAny(), r.toAny())
+		return cmpStrEval(o, l.s, r)
+
+	default: // kindAny: resolved symbol value
+		switch lv := l.a.(type) {
+		case bool:
+			return cmpBoolEval(o, lv, r)
+		case int, float64:
+			return cmpNumEval(o, l, r)
+		case string:
+			return cmpStrEval(o, lv, r)
+		default:
+			return false, newErrorWrongDataType(opName(o), l.toAny())
 		}
-
-		return applyCmpStr(o, l.s, rs)
-
-	default: // kindAny: symbol result — fall back to any-based path
-		return evalComparisonOp(o, l.toAny(), r.toAny())
 	}
+}
+
+// cmpBoolEval compares a bool left operand against r without boxing r.
+func cmpBoolEval(o ComparisonOp, l bool, r evalVal) (bool, error) {
+	rb, ok := r.toBool()
+	if !ok {
+		return false, newErrorDataTypeMismatch(opName(o), l, r.toAny())
+	}
+
+	return applyCmpBool(o, l, rb)
+}
+
+// cmpNumEval compares two numeric operands without boxing. When both operands
+// are integers it compares them exactly as int; otherwise it falls back to
+// float64, which also handles mixed int/float comparisons. The int lane avoids
+// the precision loss that float64 incurs for integers beyond 2^53.
+func cmpNumEval(o ComparisonOp, l, r evalVal) (bool, error) {
+	if li, ok := l.toInt(); ok {
+		if ri, ok := r.toInt(); ok {
+			return applyCmpOrdered(o, li, ri)
+		}
+	}
+
+	lf, ok := l.toFloat()
+	if !ok {
+		return false, newErrorWrongDataType(opName(o), l.toAny())
+	}
+
+	rf, ok := r.toFloat()
+	if !ok {
+		return false, newErrorDataTypeMismatch(opName(o), l.toAny(), r.toAny())
+	}
+
+	return applyCmpOrdered(o, lf, rf)
+}
+
+// cmpStrEval compares a string left operand against r without boxing r.
+func cmpStrEval(o ComparisonOp, l string, r evalVal) (bool, error) {
+	rs, ok := r.toString()
+	if !ok {
+		return false, newErrorDataTypeMismatch(opName(o), l, r.toAny())
+	}
+
+	return applyCmpOrdered(o, l, rs)
 }
 
 func applyCmpBool(o ComparisonOp, l, r bool) (bool, error) {
@@ -301,11 +366,11 @@ func applyCmpBool(o ComparisonOp, l, r bool) (bool, error) {
 	case o.Neq:
 		return l != r, nil
 	default:
-		return false, newErrorWrongDataType(opName(o), l)
+		return false, fmt.Errorf("%w, %s is not defined for bool", ErrOpDoesnotHaveVal, opName(o))
 	}
 }
 
-func applyCmpFloat(o ComparisonOp, l, r float64) (bool, error) {
+func applyCmpOrdered[T cmp.Ordered](o ComparisonOp, l, r T) (bool, error) {
 	switch {
 	case o.Eq || o.EqEq:
 		return l == r, nil
@@ -320,26 +385,7 @@ func applyCmpFloat(o ComparisonOp, l, r float64) (bool, error) {
 	case o.Lte:
 		return l <= r, nil
 	default:
-		return false, newErrorWrongDataType(opName(o), l)
-	}
-}
-
-func applyCmpStr(o ComparisonOp, l, r string) (bool, error) {
-	switch {
-	case o.Eq || o.EqEq:
-		return l == r, nil
-	case o.Neq:
-		return l != r, nil
-	case o.Gt:
-		return l > r, nil
-	case o.Gte:
-		return l >= r, nil
-	case o.Lt:
-		return l < r, nil
-	case o.Lte:
-		return l <= r, nil
-	default:
-		return false, newErrorWrongDataType(opName(o), l)
+		return false, fmt.Errorf("%w, %s is not defined for %T", ErrOpDoesnotHaveVal, opName(o), l)
 	}
 }
 
@@ -372,292 +418,126 @@ func opName(o ComparisonOp) string {
 	}
 }
 
-// evalComparisonOp is the any-based fallback used for kindAny (symbol) values.
-func evalComparisonOp(o ComparisonOp, l, r any) (res bool, err error) {
-	if o.Eq || o.EqEq {
-		return eqEval(l, r)
-	} else if o.Gt {
-		return gtEval(l, r)
-	} else if o.Gte {
-		return gteEval(l, r)
-	} else if o.Lt {
-		return ltEval(l, r)
-	} else if o.Lte {
-		return lteEval(l, r)
-	} else if o.Neq {
-		return neqEval(l, r)
-	} else if o.Contains {
-		return containsEval(l, r)
-	} else if o.Excludes {
-		res, err := containsEval(l, r)
-		return !res, err
-	} else if o.StartsWith {
-		return startsWithEval(l, r)
-	} else if o.EndsWith {
-		return endsWithEval(l, r)
-	} else if o.Match {
-		return matchEval(l, r)
-	} else {
-		return false, ErrOpDoesnotHaveVal
-	}
-}
+// containsEval reports whether l contains r. The left operand may be a string
+// (substring match) or a slice resolved from a symbol (element match); the
+// right operand is read through the non-boxing accessors so literals are not
+// boxed into any.
+func containsEval(l, r evalVal) (bool, error) {
+	// String containment: left is a literal string or a string symbol.
+	if ls, ok := l.toString(); ok {
+		rs, ok := r.toString()
+		if !ok {
+			return false, newErrorDataTypeMismatch("contains", l.toAny(), r.toAny())
+		}
 
-func eqEval(l, r any) (res bool, err error) {
-	switch lv := l.(type) {
-	case int:
-		switch rv := r.(type) {
-		case int:
-			return lv == rv, nil
-		case float64:
-			return float64(lv) == rv, nil
-		default:
-			return false, newErrorDataTypeMismatch("=", lv, rv)
-		}
-	case float64:
-		switch rv := r.(type) {
-		case int:
-			return lv == float64(rv), nil
-		case float64:
-			return lv == rv, nil
-		default:
-			return false, newErrorDataTypeMismatch("=", lv, rv)
-		}
-	case string:
-		switch rv := r.(type) {
-		case string:
-			return lv == rv, nil
-		default:
-			return false, newErrorDataTypeMismatch("=", lv, rv)
-		}
-	case bool:
-		switch rv := r.(type) {
-		case bool:
-			return lv == rv, nil
-		default:
-			return false, newErrorDataTypeMismatch("=", lv, rv)
-		}
-	default:
-		return false, newErrorWrongDataType("=", lv)
+		return strings.Contains(ls, rs), nil
 	}
-}
 
-func gtEval(l, r any) (res bool, err error) {
-	switch lv := l.(type) {
-	case int:
-		switch rv := r.(type) {
-		case int:
-			return lv > rv, nil
-		case float64:
-			return float64(lv) > rv, nil
-		default:
-			return false, newErrorDataTypeMismatch(">", lv, rv)
-		}
-	case float64:
-		switch rv := r.(type) {
-		case int:
-			return lv > float64(rv), nil
-		case float64:
-			return lv > rv, nil
-		default:
-			return false, newErrorDataTypeMismatch(">", lv, rv)
-		}
-	case string:
-		switch rv := r.(type) {
-		case string:
-			return lv > rv, nil
-		default:
-			return false, newErrorDataTypeMismatch(">", lv, rv)
-		}
-	default:
-		return false, newErrorWrongDataType(">", lv)
-	}
-}
-
-func gteEval(l, r any) (res bool, err error) {
-	switch lv := l.(type) {
-	case int:
-		switch rv := r.(type) {
-		case int:
-			return lv >= rv, nil
-		case float64:
-			return float64(lv) >= rv, nil
-		default:
-			return false, newErrorDataTypeMismatch(">=", lv, rv)
-		}
-	case float64:
-		switch rv := r.(type) {
-		case int:
-			return lv >= float64(rv), nil
-		case float64:
-			return lv >= rv, nil
-		default:
-			return false, newErrorDataTypeMismatch(">=", lv, rv)
-		}
-	case string:
-		switch rv := r.(type) {
-		case string:
-			return lv >= rv, nil
-		default:
-			return false, newErrorDataTypeMismatch(">=", lv, rv)
-		}
-	default:
-		return false, newErrorWrongDataType(">=", lv)
-	}
-}
-
-func ltEval(l, r any) (res bool, err error) {
-	switch lv := l.(type) {
-	case int:
-		switch rv := r.(type) {
-		case int:
-			return lv < rv, nil
-		case float64:
-			return float64(lv) < rv, nil
-		default:
-			return false, newErrorDataTypeMismatch("<", lv, rv)
-		}
-	case float64:
-		switch rv := r.(type) {
-		case int:
-			return lv < float64(rv), nil
-		case float64:
-			return lv < rv, nil
-		default:
-			return false, newErrorDataTypeMismatch("<", lv, rv)
-		}
-	case string:
-		switch rv := r.(type) {
-		case string:
-			return lv < rv, nil
-		default:
-			return false, newErrorDataTypeMismatch("<", lv, rv)
-		}
-	default:
-		return false, newErrorWrongDataType("<", lv)
-	}
-}
-
-func lteEval(l, r any) (res bool, err error) {
-	switch lv := l.(type) {
-	case int:
-		switch rv := r.(type) {
-		case int:
-			return lv <= rv, nil
-		case float64:
-			return float64(lv) <= rv, nil
-		default:
-			return false, newErrorDataTypeMismatch("<=", lv, rv)
-		}
-	case float64:
-		switch rv := r.(type) {
-		case int:
-			return lv <= float64(rv), nil
-		case float64:
-			return lv <= rv, nil
-		default:
-			return false, newErrorDataTypeMismatch("<=", lv, rv)
-		}
-	case string:
-		switch rv := r.(type) {
-		case string:
-			return lv <= rv, nil
-		default:
-			return false, newErrorDataTypeMismatch("<=", lv, rv)
-		}
-	default:
-		return false, newErrorWrongDataType("<=", lv)
-	}
-}
-
-func containsEval(l, r any) (bool, error) {
-	switch lv := l.(type) {
-	case string:
-		switch rv := r.(type) {
-		case string:
-			return strings.Contains(lv, rv), nil
-		default:
-			return false, newErrorDataTypeMismatch("contains", lv, rv)
-		}
+	// Slice containment: slices only ever arrive as resolved symbol values.
+	switch lv := l.a.(type) {
 	case []string:
-		switch rv := r.(type) {
-		case string:
-			return slices.Contains(lv, rv), nil
-		default:
-			return false, newErrorDataTypeMismatch("contains", lv, rv)
+		rs, ok := r.toString()
+		if !ok {
+			return false, newErrorDataTypeMismatch("contains", lv, r.toAny())
 		}
+
+		return slices.Contains(lv, rs), nil
 	case []int:
-		switch rv := r.(type) {
-		case int:
-			return slices.Contains(lv, rv), nil
-		case float64:
-			for _, v := range lv {
-				if float64(v) == rv {
-					return true, nil
-				}
-			}
-			return false, nil
-		default:
-			return false, newErrorDataTypeMismatch("contains", lv, rv)
+		// Compare exactly when the right operand is an integer; only fall back
+		// to float64 for an actual float operand (e.g. `ids contains 1.0`).
+		if ri, ok := r.toInt(); ok {
+			return slices.Contains(lv, ri), nil
 		}
+
+		rf, ok := r.toFloat()
+		if !ok {
+			return false, newErrorDataTypeMismatch("contains", lv, r.toAny())
+		}
+
+		return slices.ContainsFunc(lv, func(v int) bool { return float64(v) == rf }), nil
 	case []float64:
-		switch rv := r.(type) {
-		case float64:
-			return slices.Contains(lv, rv), nil
-		case int:
-			for _, v := range lv {
-				if v == float64(rv) {
-					return true, nil
-				}
-			}
-			return false, nil
-		default:
-			return false, newErrorDataTypeMismatch("contains", lv, rv)
+		rf, ok := r.toFloat()
+		if !ok {
+			return false, newErrorDataTypeMismatch("contains", lv, r.toAny())
 		}
+
+		return slices.Contains(lv, rf), nil
 	case []bool:
-		switch rv := r.(type) {
-		case bool:
-			return slices.Contains(lv, rv), nil
-		default:
-			return false, newErrorDataTypeMismatch("contains", lv, rv)
+		rb, ok := r.toBool()
+		if !ok {
+			return false, newErrorDataTypeMismatch("contains", lv, r.toAny())
 		}
+
+		return slices.Contains(lv, rb), nil
 	default:
-		return false, newErrorWrongDataType("contains", lv)
+		return false, newErrorWrongDataType("contains", l.toAny())
 	}
 }
 
-func startsWithEval(l, r any) (bool, error) {
-	lv, ok := l.(string)
-	if !ok {
-		return false, newErrorWrongDataType("starts_with", l)
-	}
-
-	rv, ok := r.(string)
-	if !ok {
-		return false, newErrorDataTypeMismatch("starts_with", l, r)
+func startsWithEval(l, r evalVal) (bool, error) {
+	lv, rv, err := stringOperands("starts_with", l, r)
+	if err != nil {
+		return false, err
 	}
 
 	return strings.HasPrefix(lv, rv), nil
 }
 
-func endsWithEval(l, r any) (bool, error) {
-	lv, ok := l.(string)
-	if !ok {
-		return false, newErrorWrongDataType("ends_with", l)
-	}
-
-	rv, ok := r.(string)
-	if !ok {
-		return false, newErrorDataTypeMismatch("ends_with", l, r)
+func endsWithEval(l, r evalVal) (bool, error) {
+	lv, rv, err := stringOperands("ends_with", l, r)
+	if err != nil {
+		return false, err
 	}
 
 	return strings.HasSuffix(lv, rv), nil
+}
+
+// matchEval reports whether the left string matches the regular expression in
+// the right operand. Both operands must be strings; the pattern uses Go's
+// regexp (RE2) syntax. The match is unanchored, like [regexp.Regexp.MatchString].
+// Compiled patterns are cached so each distinct pattern is compiled only once.
+func matchEval(l, r evalVal) (bool, error) {
+	lv, rv, err := stringOperands("match", l, r)
+	if err != nil {
+		return false, err
+	}
+
+	re, err := compilePattern(rv)
+	if err != nil {
+		return false, fmt.Errorf("%w, invalid match pattern %q: %v", ErrorWrongDataType, rv, err)
+	}
+
+	return re.MatchString(lv), nil
+}
+
+// stringOperands extracts two string operands without boxing, returning a typed
+// error for the string-only operators (starts_with, ends_with, match).
+func stringOperands(op string, l, r evalVal) (string, string, error) {
+	lv, ok := l.toString()
+	if !ok {
+		return "", "", newErrorWrongDataType(op, l.toAny())
+	}
+
+	rv, ok := r.toString()
+	if !ok {
+		return "", "", newErrorDataTypeMismatch(op, l.toAny(), r.toAny())
+	}
+
+	return lv, rv, nil
 }
 
 // matchCache memoizes compiled patterns so a regular expression is compiled
 // once per distinct pattern, not on every evaluation. Patterns may originate
 // from symbols, so the pattern string is only known at evaluation time; keying
 // the cache on it covers both literal and symbol-supplied patterns.
-var matchCache sync.Map // map[string]*regexp.Regexp
+// The cache is capped at matchCacheMax entries to bound memory growth when
+// patterns come from high-cardinality symbol values.
+var (
+	matchCache    sync.Map // map[string]*regexp.Regexp
+	matchCacheLen atomic.Int64
+)
+
+const matchCacheMax = 1024
 
 func compilePattern(pattern string) (*regexp.Regexp, error) {
 	if re, ok := matchCache.Load(pattern); ok {
@@ -669,68 +549,10 @@ func compilePattern(pattern string) (*regexp.Regexp, error) {
 		return nil, err
 	}
 
-	actual, _ := matchCache.LoadOrStore(pattern, re)
-	return actual.(*regexp.Regexp), nil
-}
-
-// matchEval reports whether the left string matches the regular expression in
-// the right operand. Both operands must be strings; the pattern uses Go's
-// regexp (RE2) syntax. The match is unanchored, like [regexp.Regexp.MatchString].
-// Compiled patterns are cached so each distinct pattern is compiled only once.
-func matchEval(l, r any) (bool, error) {
-	lv, ok := l.(string)
-	if !ok {
-		return false, newErrorWrongDataType("match", l)
-	}
-
-	rv, ok := r.(string)
-	if !ok {
-		return false, newErrorDataTypeMismatch("match", l, r)
-	}
-
-	re, err := compilePattern(rv)
-	if err != nil {
-		return false, fmt.Errorf("%w, invalid match pattern %q: %v", ErrorWrongDataType, rv, err)
-	}
-
-	return re.MatchString(lv), nil
-}
-
-func neqEval(l, r any) (res bool, err error) {
-	switch lv := l.(type) {
-	case int:
-		switch rv := r.(type) {
-		case int:
-			return lv != rv, nil
-		case float64:
-			return float64(lv) != rv, nil
-		default:
-			return false, newErrorDataTypeMismatch("!=", lv, rv)
+	if matchCacheLen.Load() < matchCacheMax {
+		if _, loaded := matchCache.LoadOrStore(pattern, re); !loaded {
+			matchCacheLen.Add(1)
 		}
-	case float64:
-		switch rv := r.(type) {
-		case int:
-			return lv != float64(rv), nil
-		case float64:
-			return lv != rv, nil
-		default:
-			return false, newErrorDataTypeMismatch("!=", lv, rv)
-		}
-	case string:
-		switch rv := r.(type) {
-		case string:
-			return lv != rv, nil
-		default:
-			return false, newErrorDataTypeMismatch("!=", lv, rv)
-		}
-	case bool:
-		switch rv := r.(type) {
-		case bool:
-			return lv != rv, nil
-		default:
-			return false, newErrorDataTypeMismatch("!=", lv, rv)
-		}
-	default:
-		return false, newErrorWrongDataType("!=", lv)
 	}
+	return re, nil
 }

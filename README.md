@@ -49,6 +49,7 @@ The syntax supports:
 * The following comparisons: `=`, `==`, `!=`, `>`, `<`, `>=`, `<=`, `contains`, `excludes`, `starts_with`, `ends_with`, `match`
 * And the logical operators: `and` (or `&&`), `or` (or `||`)
 * And the values types: int, float, string, bool
+* `and` binds tighter than `or`, the same as Go and most languages. So `a or b and c` is evaluated as `a or (b and c)`. Use parentheses to override this.
 * logical expressions can be grouped with `(...)`
 * The comparison must always be in the form `value operator value`
   * value can be a symbol or a literal e.g `x`, `1`, `true`, `"hello"`
@@ -101,6 +102,49 @@ each distinct pattern is compiled only once across all evaluations.
 | `x match "pattern.*"` | matches `x` against the literal pattern |
 | `email match pattern` | matches `email` against the regex held in symbol `pattern` |
 
+# Operator Precedence
+
+`and` binds tighter than `or`, matching Go and most languages. This matters whenever
+both operators appear in the same expression without parentheses.
+
+**Before this change** expressions were evaluated flat, left-to-right:
+
+```
+role = "admin" or active = true and verified = true
+  was read as: (role = "admin" or active = true) and verified = true
+
+  symbols: role="user", active=true, verified=false
+  old result: (false or true) and false  →  false   ← admin check entangled with verified
+```
+
+**After this change** `and` groups first, as in Go:
+
+```
+role = "admin" or active = true and verified = true
+  is read as: role = "admin" or (active = true and verified = true)
+
+  symbols: role="user", active=true, verified=false
+  new result: false or (true and false)  →  false   ← same result here…
+
+  symbols: role="admin", active=true, verified=false
+  new result: true or (true and false)   →  true    ← admin always passes, regardless of verified
+```
+
+A few more examples showing how the result changes:
+
+| Expression | Old (left-to-right) | New (and > or) |
+|---|---|---|
+| `true or false and false` | `(true or false) and false` → **false** | `true or (false and false)` → **true** |
+| `false or true and false` | `(false or true) and false` → **false** | `false or (true and false)` → **false** |
+| `true or true and false`  | `(true or true) and false`  → **false** | `true or (true and false)`  → **true**  |
+
+Use parentheses whenever you want to override the default grouping:
+
+```
+# force the old left-to-right reading:
+( role = "admin" or active = true ) and verified = true
+```
+
 # Expressions examples:
 
 * `x > 1`
@@ -128,3 +172,40 @@ BoolExpr will short circuit in two situations:
 # Examples
 
 * A basic example in Go playground: https://go.dev/play/p/4mr_z20q3C2
+
+# Benchmarks
+
+The package ships with a benchmark suite (`benchmark_test.go`) covering parsing,
+evaluation per value type and operator, the two `Symbols` implementations,
+`match`, `ListSymbols`, and evaluation scaling.
+
+Run all benchmarks with allocation stats:
+
+```sh
+go test -run=^$ -bench=. -benchmem
+```
+
+Capture CPU and memory profiles for a specific group:
+
+```sh
+go test -run=^$ -bench=BenchmarkEval -benchmem -cpuprofile=cpu.out -memprofile=mem.out
+go tool pprof cpu.out
+```
+
+Compare before/after a change with [`benchstat`](https://pkg.go.dev/golang.org/x/perf/cmd/benchstat):
+
+```sh
+go test -run=^$ -bench=. -benchmem -count=10 > old.txt
+# ...make changes...
+go test -run=^$ -bench=. -benchmem -count=10 > new.txt
+benchstat old.txt new.txt
+```
+
+A few things the baseline makes clear:
+
+* **Parsing dominates** — parsing a 3-clause expression costs orders of magnitude
+  more than evaluating it. Prefer `Parse` once and `EvalExpression` many times.
+* **Evaluation is mostly allocation-free** — most cases report 0 allocs; the
+  remaining single allocation comes from boxing a resolved symbol value into `any`.
+* **`match` allocates even with a warm pattern cache** — `regexp` allocates per
+  call; keep this in mind if `match` is on a hot path.

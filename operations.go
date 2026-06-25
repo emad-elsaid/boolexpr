@@ -20,15 +20,9 @@ func ListSymbols(exp Expression) []string {
 
 		switch i := item.(type) {
 		case BoolExpr:
-			stack = stack.Push(i.Expr)
-			for _, e := range i.OpExprs {
-				stack = stack.Push(e.Expr)
-			}
+			stack = pushBoolExpr(stack, i)
 		case *BoolExpr:
-			stack = stack.Push(i.Expr)
-			for _, e := range i.OpExprs {
-				stack = stack.Push(e.Expr)
-			}
+			stack = pushBoolExpr(stack, *i)
 		case Compare:
 			stack = stack.Push(i.Left)
 			stack = stack.Push(i.Right)
@@ -44,4 +38,25 @@ func ListSymbols(exp Expression) []string {
 	}
 
 	return syms.Unique()
+}
+
+// pushBoolExpr pushes every primary expression of a BoolExpr — the leading
+// AND-expression and each OR-ed AND-expression, including all of their AND-ed
+// operands — onto the walk stack.
+func pushBoolExpr(stack types.Slice[any], b BoolExpr) types.Slice[any] {
+	stack = pushAndExpr(stack, b.And)
+	for _, o := range b.OrOps {
+		stack = pushAndExpr(stack, o.And)
+	}
+
+	return stack
+}
+
+func pushAndExpr(stack types.Slice[any], a AndExpr) types.Slice[any] {
+	stack = stack.Push(a.Expr)
+	for _, op := range a.AndOps {
+		stack = stack.Push(op.Expr)
+	}
+
+	return stack
 }

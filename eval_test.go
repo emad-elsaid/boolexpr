@@ -289,6 +289,18 @@ func TestEval(t *testing.T) {
 		{input: `1 = 1 && 2 = 2 || 3 = 4`, expected: true},
 		{input: `1 = 2 && 2 = 2 || ( 3 = 3 )`, expected: true},
 
+		// Operator precedence: "and" binds tighter than "or", matching Go.
+		// Each case below flips result if evaluated flat left-to-right
+		// (the previous behavior) instead of `a or (b and c)`, so they pin
+		// the precedence down. The parenthesized twin forces the flat reading
+		// and must give the opposite result.
+		{input: `true or false and false`, expected: true},   // true or (false and false)
+		{input: `( true or false ) and false`, expected: false}, // flat reading -> false
+		{input: `true or true and false`, expected: true},    // true or (true and false)
+		{input: `( true or true ) and false`, expected: false},
+		{input: `true and true or false and false`, expected: true}, // (T and T) or (F and F)
+		{input: `true and ( true or false ) and false`, expected: false},
+
 		{input: `1 > 0.9`, expected: true},
 		{input: `1.1 > 1`, expected: true},
 		{input: `1.1 > 1.0`, expected: true},
@@ -500,6 +512,56 @@ func TestEval(t *testing.T) {
 				"p": func() string { return "[0-9]+" },
 			},
 		},
+
+		// Exact integer comparisons beyond 2^53, where float64 coercion would
+		// collapse distinct integers. 9007199254740992 is 2^53.
+		{
+			input:    `x = 9007199254740992`,
+			expected: false,
+			symbols:  SymbolsMap{"x": 9007199254740993},
+		},
+		{
+			input:    `x != 9007199254740992`,
+			expected: true,
+			symbols:  SymbolsMap{"x": 9007199254740993},
+		},
+		{
+			input:    `x > 9007199254740992`,
+			expected: true,
+			symbols:  SymbolsMap{"x": 9007199254740993},
+		},
+		{
+			input:    `x >= 9007199254740993`,
+			expected: true,
+			symbols:  SymbolsMap{"x": 9007199254740993},
+		},
+		{
+			input:    `x < 9007199254740994`,
+			expected: true,
+			symbols:  SymbolsMap{"x": 9007199254740993},
+		},
+		// Both operands are integer symbols just past 2^53.
+		{
+			input:    `x = y`,
+			expected: false,
+			symbols:  SymbolsMap{"x": 9007199254740993, "y": 9007199254740992},
+		},
+		// []int membership must use exact integer comparison.
+		{
+			input:    `ids contains 9007199254740992`,
+			expected: false,
+			symbols:  SymbolsMap{"ids": []int{9007199254740993}},
+		},
+		{
+			input:    `ids excludes 9007199254740992`,
+			expected: true,
+			symbols:  SymbolsMap{"ids": []int{9007199254740993}},
+		},
+		{
+			input:    `ids contains 9007199254740993`,
+			expected: true,
+			symbols:  SymbolsMap{"ids": []int{9007199254740993}},
+		},
 	}
 
 	for _, tc := range tcs {
@@ -577,8 +639,15 @@ func TestEvalErrors(t *testing.T) {
 			symbols:  SymbolsMap{"x": 42},
 		},
 
-		// excludes: type mismatch propagates from containsEval
+		// excludes: type mismatch propagates from containsEval. The result must
+		// stay false on error — excludes negates containsEval, so a careless
+		// error path would flip false into true.
 		{input: `1 excludes "x"`, expected: ErrorWrongDataType},
+		{
+			input:    `tags excludes 1`,
+			expected: ErrorWrongDataType,
+			symbols:  SymbolsMap{"tags": []string{"a"}},
+		},
 
 		// contains: type mismatches
 		{input: `1 contains "x"`, expected: ErrorWrongDataType},
@@ -619,12 +688,13 @@ func TestEvalErrors(t *testing.T) {
 	for _, tc := range tcs {
 		tc := tc
 		t.Run(fmt.Sprintf("%s -> %s", tc.input, tc.expected), func(t *testing.T) {
-			_, err := Eval(tc.input, tc.symbols)
+			output, err := Eval(tc.input, tc.symbols)
 			if tc.expected == nil {
 				assert.Error(t, err)
 			} else {
 				assert.ErrorIs(t, err, tc.expected)
 			}
+			assert.False(t, output, "result must be false when evaluation errors")
 		})
 	}
 }

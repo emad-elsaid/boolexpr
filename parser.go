@@ -13,7 +13,10 @@ func Parse(s string) (Expression, error) {
 	return Expression{e}, error
 }
 
-var parser, parserErr = participle.Build[internal.BoolExpr](
+// parser is built once at package initialization. The grammar is static, so a
+// build failure is a programming error; MustBuild panics immediately with a
+// clear message rather than leaving a nil parser to nil-deref on first Parse.
+var parser = participle.MustBuild[internal.BoolExpr](
 	participle.Unquote("String"),
 	participle.Union[internal.Expr](internal.Compare{}, internal.SubExpr{}, internal.BoolValue{}),
 )

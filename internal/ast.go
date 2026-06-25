@@ -1,8 +1,28 @@
 package internal
 
+// BoolExpr is the grammar root. "or" (and "||") has the lowest precedence, so
+// an expression is a sequence of AND-expressions joined by "or", matching the
+// precedence used by Go and most languages where "and" binds tighter than "or".
 type BoolExpr struct {
-	Expr    Expr     `parser:"@@"`
-	OpExprs []OpExpr `parser:"@@*"`
+	And   AndExpr    `parser:"@@"`
+	OrOps []OrOpExpr `parser:"@@*"`
+}
+
+// OrOpExpr is an "or"/"||" operator followed by its right-hand AND-expression.
+type OrOpExpr struct {
+	And AndExpr `parser:"('or' | '|' '|') @@"`
+}
+
+// AndExpr binds "and"/"&&" tighter than "or": a sequence of primary
+// expressions joined by "and".
+type AndExpr struct {
+	Expr   Expr        `parser:"@@"`
+	AndOps []AndOpExpr `parser:"@@*"`
+}
+
+// AndOpExpr is an "and"/"&&" operator followed by its right-hand expression.
+type AndOpExpr struct {
+	Expr Expr `parser:"('and' | '&' '&') @@"`
 }
 
 type Expr interface{}
@@ -19,16 +39,6 @@ type Compare struct {
 
 type BoolValue struct {
 	Value Value `parser:"@@"`
-}
-
-type OpExpr struct {
-	Op   LogicalOp `parser:"@@"`
-	Expr Expr      `parser:"@@"`
-}
-
-type LogicalOp struct {
-	And bool `parser:"@'and' | @'&' '&'"`
-	Or  bool `parser:"| @'or' | @'|' '|'"`
 }
 
 type Value struct {
