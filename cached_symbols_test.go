@@ -64,6 +64,20 @@ func TestNewCachedSymbols(t *testing.T) {
 		require.NotNil(t, wrapper.entries)
 		require.Empty(t, wrapper.entries)
 	})
+
+	t.Run("handles nil symbols gracefully", func(t *testing.T) {
+		wrapper := NewCachedSymbols(nil)
+
+		require.NotNil(t, wrapper)
+		require.NotNil(t, wrapper.underlying)
+		require.NotNil(t, wrapper.entries)
+
+		// Should return error for non-existent keys
+		val, err := wrapper.Get("test")
+		require.Error(t, err)
+		require.Nil(t, val)
+		assert.Contains(t, err.Error(), "Symbol not found")
+	})
 }
 
 func TestCachedSymbols_Get(t *testing.T) {

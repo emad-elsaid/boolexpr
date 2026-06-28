@@ -15,7 +15,11 @@ type CachedSymbols struct {
 }
 
 // NewCachedSymbols creates a new CachedSymbols that wraps the given Symbols implementation.
+// If symbols is nil, an empty SymbolsMap is used as the underlying implementation.
 func NewCachedSymbols(symbols Symbols) *CachedSymbols {
+	if symbols == nil {
+		symbols = SymbolsMap{}
+	}
 	return &CachedSymbols{
 		underlying: symbols,
 		entries:    make(map[string]*symbolEntry),
