@@ -294,9 +294,9 @@ func TestEval(t *testing.T) {
 		// (the previous behavior) instead of `a or (b and c)`, so they pin
 		// the precedence down. The parenthesized twin forces the flat reading
 		// and must give the opposite result.
-		{input: `true or false and false`, expected: true},   // true or (false and false)
+		{input: `true or false and false`, expected: true},      // true or (false and false)
 		{input: `( true or false ) and false`, expected: false}, // flat reading -> false
-		{input: `true or true and false`, expected: true},    // true or (true and false)
+		{input: `true or true and false`, expected: true},       // true or (true and false)
 		{input: `( true or true ) and false`, expected: false},
 		{input: `true and true or false and false`, expected: true}, // (T and T) or (F and F)
 		{input: `true and ( true or false ) and false`, expected: false},

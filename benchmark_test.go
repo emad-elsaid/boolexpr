@@ -133,11 +133,11 @@ func BenchmarkEvalParseAndRun(b *testing.B) {
 }
 
 // ---------------------------------------------------------------------------
-// Symbols implementations: SymbolsMap vs SymbolsCached
+// Symbols implementations: SymbolsMap vs CachedMap
 // ---------------------------------------------------------------------------
 
 // BenchmarkSymbols compares the two Symbols implementations under repeated
-// evaluation. SymbolsCached resolves each function once; SymbolsMap re-resolves
+// evaluation. CachedMap resolves each function once; SymbolsMap re-resolves
 // on every lookup, so this highlights the trade-off for expensive symbols.
 func BenchmarkSymbols(b *testing.B) {
 	expr := `a = 1 and b = 2 and c = 3 and d = 4`
@@ -161,8 +161,8 @@ func BenchmarkSymbols(b *testing.B) {
 		}
 	})
 
-	b.Run("SymbolsCached", func(b *testing.B) {
-		syms := NewSymbolsCached(raw)
+	b.Run("CachedMap", func(b *testing.B) {
+		syms := NewCachedMap(raw)
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			benchBool, benchErr = EvalExpression(ast, syms)
@@ -170,7 +170,7 @@ func BenchmarkSymbols(b *testing.B) {
 	})
 }
 
-// BenchmarkSymbolsConcurrent exercises SymbolsCached under concurrent access,
+// BenchmarkSymbolsConcurrent exercises CachedMap under concurrent access,
 // the scenario it is designed for.
 func BenchmarkSymbolsConcurrent(b *testing.B) {
 	ast, err := Parse(`a = 1 and b = 2 and c = 3`)
@@ -180,7 +180,7 @@ func BenchmarkSymbolsConcurrent(b *testing.B) {
 
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
-		syms := NewSymbolsCached(map[string]any{
+		syms := NewCachedMap(map[string]any{
 			"a": func() int { return 1 },
 			"b": func() int { return 2 },
 			"c": func() int { return 3 },

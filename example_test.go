@@ -97,10 +97,10 @@ func ExampleListSymbols() {
 	// Output: 3 symbols
 }
 
-// SymbolsCached resolves each symbol at most once and records which symbols an
+// CachedMap resolves each symbol at most once and records which symbols an
 // evaluation actually touched. Short-circuiting means "y" is never looked up.
-func ExampleSymbolsCached() {
-	symbols := boolexpr.NewSymbolsCached(map[string]any{
+func ExampleCachedMap() {
+	symbols := boolexpr.NewCachedMap(map[string]any{
 		"x": false,
 		"y": func() bool { panic("never called") },
 	})

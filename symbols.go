@@ -8,7 +8,7 @@ import (
 
 // Symbols supplies the value of each symbol referenced by an expression during
 // evaluation. Implementations are provided with [SymbolsMap] and
-// [SymbolsCached]; custom sources (databases, request context, etc.) can be
+// [CachedMap]; custom sources (databases, request context, etc.) can be
 // used by implementing this interface.
 type Symbols interface {
 	// Get returns the resolved value for the named symbol, or an error if the
@@ -45,18 +45,18 @@ type symbolEntry struct {
 	used atomic.Bool
 }
 
-// SymbolsCached implements Symbols interface, wraps map[string]any and keeps
+// CachedMap implements Symbols interface, wraps map[string]any and keeps
 // track of variables looked up and caches the values returned, guarantees
 // executing any function in the symbols once. Suitable for concurrent use.
 //
 // Entries are stored in a contiguous slice; the index map holds name→slice-index
 // to avoid N individual heap pointer allocations that map[string]*symbolEntry would require.
-type SymbolsCached struct {
+type CachedMap struct {
 	index   map[string]int
 	entries []symbolEntry
 }
 
-func (s *SymbolsCached) Get(key string) (any, error) {
+func (s *CachedMap) Get(key string) (any, error) {
 	idx, ok := s.index[key]
 	if !ok {
 		return nil, fmt.Errorf("symbol: %s, %w", key, ErrSymbolNotFound)
@@ -87,7 +87,7 @@ func (s *SymbolsCached) Get(key string) (any, error) {
 // mapped to their resolved values. Because evaluation short-circuits, symbols
 // guarded by an already-decided "and"/"or" are absent. Call it after
 // evaluating to learn which inputs influenced the result.
-func (s *SymbolsCached) Used() map[string]any {
+func (s *CachedMap) Used() map[string]any {
 	result := make(map[string]any)
 
 	for k, idx := range s.index {
@@ -99,11 +99,11 @@ func (s *SymbolsCached) Used() map[string]any {
 	return result
 }
 
-// NewSymbolsCached builds a [SymbolsCached] from m. The map values follow the
+// NewCachedMap builds a [CachedMap] from m. The map values follow the
 // same rules as [SymbolsMap]: literals, slices, or lazily-evaluated functions.
 // Each symbol's value (and any function it wraps) is resolved at most once,
 // even across concurrent evaluations.
-func NewSymbolsCached(m map[string]any) *SymbolsCached {
+func NewCachedMap(m map[string]any) *CachedMap {
 	entries := make([]symbolEntry, 0, len(m))
 	index := make(map[string]int, len(m))
 
@@ -112,7 +112,7 @@ func NewSymbolsCached(m map[string]any) *SymbolsCached {
 		entries = append(entries, symbolEntry{raw: v})
 	}
 
-	return &SymbolsCached{index: index, entries: entries}
+	return &CachedMap{index: index, entries: entries}
 }
 
 // resolveSymbol turns a raw symbol value into the value used during

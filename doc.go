@@ -107,6 +107,6 @@
 //
 // Logical operators short-circuit: with "and" a false left operand skips the
 // right operand (and any symbol functions it would call); with "or" a true
-// left operand does the same. Combined with [SymbolsCached], this lets you
+// left operand does the same. Combined with [CachedMap], this lets you
 // inspect exactly which symbols an evaluation actually touched.
 package boolexpr

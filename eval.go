@@ -152,7 +152,7 @@ func evalExpr(b Expr, syms Symbols) (bool, error) {
 type evalKind uint8
 
 const (
-	kindBool    evalKind = iota + 1
+	kindBool evalKind = iota + 1
 	kindFloat64
 	kindInt
 	kindString
